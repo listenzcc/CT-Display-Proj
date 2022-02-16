@@ -1,0 +1,56 @@
+div#main-window {
+    width: 1500px;
+    /* height: 100%; */
+    /* min-height: 5in; */
+    overflow: auto;
+}
+
+/* div#report-area-2 {
+    max-height: 500px;
+    overflow-y: scroll;
+} */
+
+/* div#app-title-div {
+    width: 1500px;
+} */
+
+h1#app-title {
+    color: darkgreen;
+    margin: 10px;
+    padding: 0;
+}
+
+div#features-div {
+    width: 1200px;
+}
+
+div#behavior-div {
+    width: 300px;
+    padding: 5px;
+}
+
+#slider-1 {
+    height: 50px;
+}
+
+#howto-open {
+    white-space: nowrap;
+}
+
+#gh-link {
+    white-space: nowrap;
+}
+
+.card {
+    margin: 1em 0 1em 0;
+    min-width: auto;
+}
+
+label {
+    display: block;
+    margin-bottom: 0;
+}
+
+#transparent-loader-wrapper > div {
+    visibility: visible !important;
+}

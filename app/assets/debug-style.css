@@ -1,0 +1,10 @@
+div.allow-debug {
+    border: 1px solid grey;
+    transition: transform 0.1s;
+}
+
+div.allow-debug:hover {
+    /* transform: scale(0.99); */
+    /* margin: 3px; */
+    border: 1px solid blueviolet;
+}
