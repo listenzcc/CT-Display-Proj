@@ -37,6 +37,11 @@ _local_style = {
     'flex-direction': 'row',
     'flex-flow': 'wrap',
     'justify-content': 'space-between',
+    'margin-top': '5px',
+    'margin-bottom': '10px',
+    'margin-left': '10px',
+    'margin-right': '10px',
+    'background-color': 'white',
 }
 
 _local_labelStyle = {'min-width': '100px'}
@@ -44,201 +49,186 @@ _local_labelStyle = {'min-width': '100px'}
 behavior_div_children = [
     # --------------------------------------------------------------------------------
     # Subject information
+    html.H2('Subject Score'),
     html.Div(
-        id='subject-information-div',
+        id='subject-score',
+        className='{} {}'.format(className, 'score'),
+        children='--'
+    ),
+
+    html.Div(
         className=className,
         children=[
-            html.Label('Subject Information'),
-            html.Br(),
-            dcc.Textarea(id='Subject-Information', value='----')
+            # --------------------------------------------------------------------------------
+            html.Label('Age'),
+            dcc.RadioItems(
+                id='behavior-age',
+                className=className,
+                style=_local_style,
+                labelStyle=_local_labelStyle,
+                options=[
+                    dict(label='高于 80', value=2),
+                    dict(label='50 ~ 80', value=1),
+                    dict(label='低于 50', value=0),
+                ]
+            ),
+
+            # --------------------------------------------------------------------------------
+            html.Label('Gender'),
+            dcc.RadioItems(
+                id='behavior-gender',
+                className=className,
+                style=_local_style,
+                labelStyle=_local_labelStyle,
+                options=[
+                    dict(label='男', value=2),
+                    dict(label='女', value=1),
+                ]
+            ),
+
+            # --------------------------------------------------------------------------------
+            html.Label('Habit'),
+            dcc.Checklist(
+                id='behavior-habit',
+                className=className,
+                style=_local_style,
+                labelStyle=_local_labelStyle,
+                options=[
+                    dict(label='吸烟', value=1.00001),
+                    dict(label='饮酒', value=1.00002),
+                    dict(label='无', value=0)
+                ]
+            ),
+
+            # --------------------------------------------------------------------------------
+            html.Label('Case'),
+            dcc.Checklist(
+                id='behavior-case',
+                className=className,
+                style=_local_style,
+                labelStyle=_local_labelStyle,
+                options=[
+                    dict(label='高血压', value=1.00001),
+                    dict(label='糖尿病', value=1.00002),
+                    dict(label='高脂血症', value=1.00003),
+                    dict(label='脑卒中', value=1.00004),
+                    dict(label='无', value=0),
+                ]
+            ),
+
+            # --------------------------------------------------------------------------------
+            html.Label('Medicine'),
+            dcc.Checklist(
+                id='behavior-medicine',
+                className=className,
+                style=_local_style,
+                labelStyle=_local_labelStyle,
+                options=[
+                    dict(label='抗凝药物', value=1.00001),
+                    dict(label='抗血小板药物', value=1.00002),
+                    dict(label='无', value=0),
+                ]
+            ),
+
+            # --------------------------------------------------------------------------------
+            html.Label('GCS'),
+            dcc.RadioItems(
+                id='behavior-GCS',
+                className=className,
+                style=_local_style,
+                labelStyle=_local_labelStyle,
+                options=[
+                    dict(label='3 ~ 6', value=2),
+                    dict(label='1 ~ 12', value=1),
+                    dict(label='12 ~ 6???', value=0),
+                ]
+            ),
+
+            # --------------------------------------------------------------------------------
+            html.Label('NIHSS'),
+            dcc.RadioItems(
+                id='behavior-NIHSS',
+                className=className,
+                style=_local_style,
+                labelStyle=_local_labelStyle,
+                options=[
+                    dict(label='大于 20', value=4),
+                    dict(label='14 ~ 20', value=3),
+                    dict(label='11 ~ 15', value=2),
+                    dict(label='6 ~ 10', value=1),
+                    dict(label='0 ~ 5', value=0),
+                ]
+            ),
+
+            # --------------------------------------------------------------------------------
+            html.Label('Volume'),
+            dcc.RadioItems(
+                id='behavior-volume',
+                className=className,
+                style=_local_style,
+                labelStyle=_local_labelStyle,
+                options=[
+                    dict(label='大于 40', value=1),
+                    dict(label='小于 40', value=0),
+                ]
+            ),
+
+            # --------------------------------------------------------------------------------
+            html.Label('Ponding'),
+            dcc.RadioItems(
+                id='behavior-ponding',
+                className=className,
+                style=_local_style,
+                labelStyle=_local_labelStyle,
+                options=[
+                    dict(label='是', value=2),
+                    dict(label='否', value=0),
+                ]
+            ),
+
+            # --------------------------------------------------------------------------------
+            html.Label('Hemi'),
+            dcc.RadioItems(
+                id='behavior-hemi',
+                className=className,
+                style=_local_style,
+                labelStyle=_local_labelStyle,
+                options=[
+                    dict(label='左侧', value=2),
+                    dict(label='右侧', value=1),
+                ]
+            ),
+
+            # --------------------------------------------------------------------------------
+            html.Label('Complication'),
+            dcc.Checklist(
+                id='behavior-complication',
+                className=className,
+                style=_local_style,
+                labelStyle=_local_labelStyle,
+                options=[
+                    dict(label='再发出血', value=1.00001),
+                    dict(label='颅内感染', value=1.00002),
+                    dict(label='呼吸道感染', value=1.00003),
+                    dict(label='泌尿系感染', value=1.00004),
+                    dict(label='深静脉血栓', value=1.00005),
+                    dict(label='无', value=0),
+                ]
+            ),
+
         ]
     ),
 
-    # --------------------------------------------------------------------------------
-    html.Label('Age'),
-    dcc.RadioItems(
-        id='behavior-age',
-        className=className,
-        style=_local_style,
-        labelStyle=_local_labelStyle,
-        options=[
-            dict(label='高于 80', value=2),
-            dict(label='50 ~ 80', value=1),
-            dict(label='低于 50', value=0),
-        ]
-    ),
-
-    # --------------------------------------------------------------------------------
-    html.Label('Gender'),
-    dcc.RadioItems(
-        id='behavior-gender',
-        className=className,
-        style=_local_style,
-        labelStyle=_local_labelStyle,
-        options=[
-            dict(label='男', value=2),
-            dict(label='女', value=1),
-        ]
-    ),
-
-    # --------------------------------------------------------------------------------
-    html.Label('Habit'),
-    dcc.Checklist(
-        id='behavior-habit',
-        className=className,
-        style=_local_style,
-        labelStyle=_local_labelStyle,
-        options=[
-            dict(label='吸烟', value=1.00001),
-            dict(label='饮酒', value=1.00002),
-            dict(label='无', value=0)
-        ]
-    ),
-
-    # --------------------------------------------------------------------------------
-    html.Label('Case'),
-    dcc.Checklist(
-        id='behavior-case',
-        className=className,
-        style=_local_style,
-        labelStyle=_local_labelStyle,
-        options=[
-            dict(label='高血压', value=1.00001),
-            dict(label='糖尿病', value=1.00002),
-            dict(label='高脂血症', value=1.00003),
-            dict(label='脑卒中', value=1.00004),
-            dict(label='无', value=0),
-        ]
-    ),
-
-    # --------------------------------------------------------------------------------
-    html.Label('Medicine'),
-    dcc.Checklist(
-        id='behavior-medicine',
-        className=className,
-        style=_local_style,
-        labelStyle=_local_labelStyle,
-        options=[
-            dict(label='抗凝药物', value=1.00001),
-            dict(label='抗血小板药物', value=1.00002),
-            dict(label='无', value=0),
-        ]
-    ),
-
-    # --------------------------------------------------------------------------------
-    html.Label('GCS'),
-    dcc.RadioItems(
-        id='behavior-GCS',
-        className=className,
-        style=_local_style,
-        labelStyle=_local_labelStyle,
-        options=[
-            dict(label='3 ~ 6', value=2),
-            dict(label='1 ~ 12', value=1),
-            dict(label='12 ~ 6???', value=0),
-        ]
-    ),
-
-    # --------------------------------------------------------------------------------
-    html.Label('NIHSS'),
-    dcc.RadioItems(
-        id='behavior-NIHSS',
-        className=className,
-        style=_local_style,
-        labelStyle=_local_labelStyle,
-        options=[
-            dict(label='大于 20', value=4),
-            dict(label='14 ~ 20', value=3),
-            dict(label='11 ~ 15', value=2),
-            dict(label='6 ~ 10', value=1),
-            dict(label='0 ~ 5', value=0),
-        ]
-    ),
-
-    # --------------------------------------------------------------------------------
-    html.Label('Volume'),
-    dcc.RadioItems(
-        id='behavior-volume',
-        className=className,
-        style=_local_style,
-        labelStyle=_local_labelStyle,
-        options=[
-            dict(label='大于 40', value=1),
-            dict(label='小于 40', value=0),
-        ]
-    ),
-
-    # --------------------------------------------------------------------------------
-    html.Label('Ponding'),
-    dcc.RadioItems(
-        id='behavior-ponding',
-        className=className,
-        style=_local_style,
-        labelStyle=_local_labelStyle,
-        options=[
-            dict(label='是', value=2),
-            dict(label='否', value=0),
-        ]
-    ),
-
-    # --------------------------------------------------------------------------------
-    html.Label('Hemi'),
-    dcc.RadioItems(
-        id='behavior-hemi',
-        className=className,
-        style=_local_style,
-        labelStyle=_local_labelStyle,
-        options=[
-            dict(label='左侧', value=2),
-            dict(label='右侧', value=1),
-        ]
-    ),
-
-    # --------------------------------------------------------------------------------
-    html.Label('Complication'),
-    dcc.Checklist(
-        id='behavior-complication',
-        className=className,
-        style=_local_style,
-        labelStyle=_local_labelStyle,
-        options=[
-            dict(label='再发出血', value=1.00001),
-            dict(label='颅内感染', value=1.00002),
-            dict(label='呼吸道感染', value=1.00003),
-            dict(label='泌尿系感染', value=1.00004),
-            dict(label='深静脉血栓', value=1.00005),
-            dict(label='无', value=0),
-        ]
-    ),
+    html.Br(),
+    dcc.Textarea(id='subject-score-detail', value='----'),
 ]
 
 features_div_children = [
-
-    # --------------------------------------------------------------------------------
-    # Features table
-    dcc.Loading(
-        html.Div(
-            id='features-table-div',
-            className=className,
-            children=[
-                html.Label('Score: '),
-                html.Div(
-                    id='features-score',
-                    className=className,
-                    children='--'
-                ),
-                html.Div(
-                    className=className,
-                    children=[
-                        html.Div(
-                            id='features-table',
-                            className=className,
-                            children='Table of Features'
-                        )
-                    ]
-                )
-            ]
-        )
+    html.H2('Features Score'),
+    html.Div(
+        id='features-score',
+        className='{} {}'.format(className, 'score'),
+        children='--'
     ),
 
     # --------------------------------------------------------------------------------
@@ -251,12 +241,9 @@ features_div_children = [
             html.Div(
                 className=className,
                 children=[
-                    html.Div(
-                        id='slide-2-container-div',
-                        className=className,
-                        children=dcc.Graph(
-                            id='graph-2',
-                        )
+                    html.H2('Slice View'),
+                    dcc.Graph(
+                        id='graph-2',
                     ),
                     dcc.Slider(
                         id='slider-1',
@@ -271,13 +258,35 @@ features_div_children = [
             dcc.Loading(html.Div(
                 className=className,
                 children=[
+                    html.H2('Volume View'),
                     dcc.Graph(
                         id='graph-1',
                     )
                 ]
             )),
         ]
-    )
+    ),
+
+    # --------------------------------------------------------------------------------
+    # Features table
+    html.Div(
+        id='features-table-div',
+        className=className,
+        children=[
+            html.H2('Features Value'),
+            html.Div(
+                className=className,
+                children=[
+                    html.Div(
+                        id='features-table',
+                        className=className,
+                        children='Table of Features'
+                    ),
+                ]
+            )
+        ]
+    ),
+
 ]
 
 app.layout = html.Div(
@@ -302,7 +311,7 @@ app.layout = html.Div(
             id='subject-selector-div',
             className=className,
             children=[
-                html.Label('Subject'),
+                html.H2('Subject Selector'),
                 dcc.Dropdown(
                     id='CT-Subject-selector',
                     clearable=False,
@@ -349,7 +358,7 @@ def mk_features_table(subject):
 
     # N.A. refers we found no ROI,
     # so we do nothing for it.
-    score = np.inf
+    score = 'N.A.'
 
     if df.iloc[0]['name'] != 'N.A.':
 
@@ -376,6 +385,13 @@ def mk_features_table(subject):
         df['Weight'] = df['name'].map(lambda e: WEIGHTS.loc[e, 'weight'])
 
         score = np.sum(np.array(df['Weight']) * np.array(df['value'])) - OFFSET
+
+        def _format(e):
+            return '{:0.4f}'.format(e)
+
+        df['value'] = df['value'].map(_format)
+        for col in columns:
+            df[col] = df[col].map(_format)
 
     columns = [{"name": i, "id": i} for i in df.columns]
     data = df.to_dict('records')
@@ -480,7 +496,27 @@ def mk_figures(subject):
 @app.callback(
     [
         Output('features-table', 'children'),
-        Output('features-score', 'children')
+        Output('features-score', 'children'),
+        Output('graph-1', 'figure'),
+        Output('slider-1', 'marks'),
+        Output('slider-1', 'min'),
+        Output('slider-1', 'max'),
+        Output('slider-1', 'value'),
+        Output('graph-2', 'figure'),
+
+        Output('subject-score', 'children'),
+
+        Output('behavior-age', 'value'),
+        Output('behavior-gender', 'value'),
+        Output('behavior-habit', 'value'),
+        Output('behavior-case', 'value'),
+        Output('behavior-medicine', 'value'),
+        Output('behavior-GCS', 'value'),
+        Output('behavior-NIHSS', 'value'),
+        Output('behavior-volume', 'value'),
+        Output('behavior-ponding', 'value'),
+        Output('behavior-hemi', 'value'),
+        Output('behavior-complication', 'value'),
     ],
     [
         Input('CT-Subject-selector', 'value')
@@ -498,42 +534,69 @@ def callback_subject_selection(subject):
 
     table_obj, score = mk_features_table(subject)
 
-    return table_obj, score
-
-
-@app.callback(
-    [
-        Output('graph-1', 'figure'),
-        Output('slider-1', 'marks'),
-        Output('slider-1', 'min'),
-        Output('slider-1', 'max'),
-        Output('slider-1', 'value'),
-        Output('graph-2', 'figure'),
-    ],
-    [
-        Input('CT-Subject-selector', 'value')
-    ]
-)
-def callback_subject_selection_1(subject):
-    '''
-    Update the figures.
-    '''
-    # --------------------------------------------------------------------------------
-    # Which Input is inputted
-    cbcontext = [p["prop_id"] for p in dash.callback_context.triggered][0]
-    logger.debug(
-        'The callback_subject_selection_1 receives the event: {}'.format(cbcontext))
-
     fig, figs_slices = mk_figures(subject)
 
     num = len(figs_slices)
     marks = {i: 'Slice {}'.format(i) if i == 0 else str(i)
-             for i in range(0, num)}
+             for i in range(0, num, 5)}
     _min = 0
     _max = num
     slice = int(num / 2)
 
-    return fig, marks, _min, _max, slice, figs_slices[slice]
+    if isinstance(score, float):
+        score = '{:0.2f}'.format(score)
+
+    # Output('features-table', 'children'),
+    # Output('features-score', 'children'),
+    # Output('graph-1', 'figure'),
+    # Output('slider-1', 'marks'),
+    # Output('slider-1', 'min'),
+    # Output('slider-1', 'max'),
+    # Output('slider-1', 'value'),
+    # Output('graph-2', 'figure'),
+
+    # Output('subject-score', 'children'),
+
+    # Output('behavior-age', 'value'),
+    # Output('behavior-gender', 'value'),
+    # Output('behavior-habit', 'value'),
+    # Output('behavior-case', 'value'),
+    # Output('behavior-medicine', 'value'),
+    # Output('behavior-GCS', 'value'),
+    # Output('behavior-NIHSS', 'value'),
+    # Output('behavior-volume', 'value'),
+    # Output('behavior-ponding', 'value'),
+    # Output('behavior-hemi', 'value'),
+    # Output('behavior-complication', 'value'),
+
+    output = (
+        table_obj,
+        score,
+        fig,
+        marks,
+        _min,
+        _max,
+        slice,
+        figs_slices[slice],
+
+        'N.A',
+
+        None,  # Age
+        None,  # Gender
+        [],  # Habit
+        [],  # Case
+        [],  # Medicine
+        None,  # GCS
+        None,  # NIHSS
+        None,  # Volume
+        None,  # Ponding
+        None,  # Hemi
+        [],  # Complication
+    )
+
+    return output
+
+    # return table_obj, score, fig, marks, _min, _max, slice, figs_slices[slice], 'N.A.'
 
 
 @app.callback(
@@ -566,7 +629,8 @@ def callback_slider_1(slice_idx):
 
 @app.callback(
     [
-        Output('Subject-Information', 'value'),
+        Output('subject-score-detail', 'value'),
+        Output('subject-score', 'children'),
     ],
     [
         Input('behavior-age', 'value'),
@@ -624,7 +688,7 @@ def callback_behaviors_1(age, gender, habit, case, medicine, GCS, NIHSS, volume,
 
     res = '\n'.join(res)
 
-    return res,
+    return res, score
 
 
 # %%

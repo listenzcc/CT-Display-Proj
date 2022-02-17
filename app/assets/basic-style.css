@@ -14,8 +14,15 @@ div#main-window {
     width: 1500px;
 } */
 
+.score {
+    font-family: monospace;
+    font-style: italic;
+    /* font-size: x-large; */
+    font-size: 2em;
+    color: firebrick;
+}
+
 h1#app-title {
-    color: darkgreen;
     margin: 10px;
     padding: 0;
 }
@@ -25,12 +32,17 @@ div#features-div {
 }
 
 div#behavior-div {
-    width: 300px;
-    padding: 5px;
+    width: 290px;
+    margin-left: 5px;
+}
+
+textarea#subject-score-detail {
+    width: 280px;
 }
 
 #slider-1 {
     height: 50px;
+    padding: 20px;
 }
 
 #howto-open {
