@@ -22,9 +22,13 @@ div#main-window {
     color: firebrick;
 }
 
-h1#app-title {
-    margin: 10px;
-    padding: 0;
+h1,
+h2 {
+    padding: 5px;
+}
+
+label {
+    padding: 5px;
 }
 
 div#features-div {

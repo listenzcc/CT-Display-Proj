@@ -12,4 +12,5 @@ div.allow-debug:hover {
     /* margin: 3px; */
     border-top: 1px solid blueviolet;
     border-left: 2px solid blueviolet;
+    border-radius: 5px;
 }
