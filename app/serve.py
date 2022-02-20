@@ -294,6 +294,7 @@ app.layout = html.Div(
     className=className,
     # children=children_level_1,
     children=[
+        html.Div(style={'display': 'none'}, id='blank-output'),
         # --------------------------------------------------------------------------------
         # Title
         html.Div(
@@ -493,6 +494,60 @@ def mk_figures(subject):
 # %%
 
 
+app.clientside_callback(
+    """
+    (e) => {
+        console.log(e);
+
+        let dom = document.getElementById('subject-score')
+        dom.textContent = 'N.A.'
+
+        let behaviors = [
+            'behavior-age',
+            'behavior-gender',
+            'behavior-habit',
+            'behavior-case',
+            'behavior-medicine',
+            'behavior-GCS',
+            'behavior-NIHSS',
+            'behavior-volume',
+            'behavior-ponding',
+            'behavior-hemi',
+            'behavior-complication'
+            ]
+
+        for (let b=0; b < behaviors.length; b++) {
+            dom = document.getElementById(behaviors[b]);
+            for (let i = 0; i < dom.childElementCount; i++) {
+                dom.children[i].children[0].checked = false;
+            }
+        }
+
+        return ['a', 'b']
+    }
+    """,
+    [
+        Output('blank-output', 'children')
+    ],
+    [
+        Input('CT-Subject-selector', 'value')
+    ]
+)
+# app.clientside_callback(
+#     """
+#     function(tab_value) {
+#         if (tab_value === 'tab-1') {
+#             document.title = 'Tab 1'
+#         } else if (tab_value === 'tab-2') {
+#             document.title = 'Tab 2'
+#         }
+#     }
+#     """,
+#     Output('blank-output', 'children'),
+#     Input('tabs-example', 'value')
+# )
+
+
 @app.callback(
     [
         Output('features-table', 'children'),
@@ -504,19 +559,19 @@ def mk_figures(subject):
         Output('slider-1', 'value'),
         Output('graph-2', 'figure'),
 
-        Output('subject-score', 'children'),
+        # Output('subject-score', 'children'),
 
-        Output('behavior-age', 'value'),
-        Output('behavior-gender', 'value'),
-        Output('behavior-habit', 'value'),
-        Output('behavior-case', 'value'),
-        Output('behavior-medicine', 'value'),
-        Output('behavior-GCS', 'value'),
-        Output('behavior-NIHSS', 'value'),
-        Output('behavior-volume', 'value'),
-        Output('behavior-ponding', 'value'),
-        Output('behavior-hemi', 'value'),
-        Output('behavior-complication', 'value'),
+        # Output('behavior-age', 'value'),
+        # Output('behavior-gender', 'value'),
+        # Output('behavior-habit', 'value'),
+        # Output('behavior-case', 'value'),
+        # Output('behavior-medicine', 'value'),
+        # Output('behavior-GCS', 'value'),
+        # Output('behavior-NIHSS', 'value'),
+        # Output('behavior-volume', 'value'),
+        # Output('behavior-ponding', 'value'),
+        # Output('behavior-hemi', 'value'),
+        # Output('behavior-complication', 'value'),
     ],
     [
         Input('CT-Subject-selector', 'value')
@@ -579,19 +634,19 @@ def callback_subject_selection(subject):
         slice,
         figs_slices[slice],
 
-        'N.A',
+        # 'N.A',
 
-        None,  # Age
-        None,  # Gender
-        [],  # Habit
-        [],  # Case
-        [],  # Medicine
-        None,  # GCS
-        None,  # NIHSS
-        None,  # Volume
-        None,  # Ponding
-        None,  # Hemi
-        [],  # Complication
+        # None,  # Age
+        # None,  # Gender
+        # [],  # Habit
+        # [],  # Case
+        # [],  # Medicine
+        # None,  # GCS
+        # None,  # NIHSS
+        # None,  # Volume
+        # None,  # Ponding
+        # None,  # Hemi
+        # [],  # Complication
     )
 
     return output
@@ -599,32 +654,32 @@ def callback_subject_selection(subject):
     # return table_obj, score, fig, marks, _min, _max, slice, figs_slices[slice], 'N.A.'
 
 
-@app.callback(
-    [
-        Output('graph-2', 'figure')
-    ],
-    [
-        Input('slider-1', 'value')
-    ]
-)
-def callback_slider_1(slice_idx):
-    '''
-    Change Slice.
-    '''
-    # --------------------------------------------------------------------------------
-    # Which Input is inputted
-    cbcontext = [p["prop_id"] for p in dash.callback_context.triggered][0]
-    logger.debug(
-        'The callback_slider_1 receives the event: {}'.format(cbcontext))
+# @app.callback(
+#     [
+#         Output('graph-2', 'figure')
+#     ],
+#     [
+#         Input('slider-1', 'value')
+#     ]
+# )
+# def callback_slider_1(slice_idx):
+#     '''
+#     Change Slice.
+#     '''
+#     # --------------------------------------------------------------------------------
+#     # Which Input is inputted
+#     cbcontext = [p["prop_id"] for p in dash.callback_context.triggered][0]
+#     logger.debug(
+#         'The callback_slider_1 receives the event: {}'.format(cbcontext))
 
-    figs = dynamic_data.get('figs_slices', None)
+#     figs = dynamic_data.get('figs_slices', None)
 
-    if figs is None:
-        return px.scatter(x=[1, 2, 3], y=[4, 5, 6]),
+#     if figs is None:
+#         return px.scatter(x=[1, 2, 3], y=[4, 5, 6]),
 
-    fig = figs[slice_idx]
+#     fig = figs[slice_idx]
 
-    return fig,
+#     return fig,
 
 
 @app.callback(
