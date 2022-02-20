@@ -53,7 +53,7 @@ behavior_div_children = [
     html.Div(
         id='subject-score',
         className='{} {}'.format(className, 'score'),
-        children='--'
+        children='N.A.'
     ),
 
     html.Div(
@@ -238,23 +238,15 @@ features_div_children = [
         className=className,
         style={'display': 'flex', 'flex-direction': 'row', 'width': '100%'},
         children=[
-            html.Div(
+            dcc.Loading(html.Div(
                 className=className,
                 children=[
                     html.H2('Slice View'),
                     dcc.Graph(
                         id='graph-2',
                     ),
-                    dcc.Slider(
-                        id='slider-1',
-                        min=0,
-                        max=10,
-                        marks={i: 'Slice {}'.format(i) if i == 0 else str(i)
-                               for i in range(0, 10)},
-                        value=5,
-                    ),
                 ]
-            ),
+            )),
             dcc.Loading(html.Div(
                 className=className,
                 children=[
@@ -277,11 +269,11 @@ features_div_children = [
             html.Div(
                 className=className,
                 children=[
-                    html.Div(
+                    dcc.Loading(html.Div(
                         id='features-table',
                         className=className,
                         children='Table of Features'
-                    ),
+                    )),
                 ]
             )
         ]
@@ -318,7 +310,7 @@ app.layout = html.Div(
                     clearable=False,
                     options=[{'label': e, 'value': e}
                              for e in SUBJECT_MANAGER.subjects],
-                    value=[e for e in SUBJECT_MANAGER.subjects][1]
+                    value=[e for e in SUBJECT_MANAGER.subjects][0]
                 )
             ]
         ),
@@ -452,44 +444,130 @@ def mk_figures(subject):
     logger.debug('The fig of 3D is updated.')
 
     # --------------------------------------------------------------------------------
-    # The figs is a list of slice views
-    figs_slices = []
+    # The fig_slices is the sliding list of slice views
+    # Create figure
+    fig = go.Figure()
     range_color = (-1000, 2000)
-    for j in tqdm(range(len(img_array)), 'Prepare Slices'):
-        # Two-layers will be generated.
-        # The background is the gray-scaled brain slice view.
-        fig = px.imshow(img_array[j],
-                        range_color=range_color,
-                        color_continuous_scale='gray')
+    num_slices = len(img_array)
+    middle_slice = int(num_slices / 2)
+
+    # Add traces, one for each slider step
+    for step in tqdm(range(num_slices), 'Prepare Slices'):
+
+       # Two-layers will be generated.
+       # The background is the gray-scaled brain slice view.
+        _fig = px.imshow(img_array[step],
+                         #  range_color=range_color,
+                         color_continuous_scale='gray')
 
         # The upper layer is the contour of values between start=50 and end=100,
         # it is designed to be the detected object
-        fig.add_trace(go.Contour(z=img_contour[j],
-                                 showscale=False,
-                                 hoverinfo='skip',
-                                 line_width=2,
-                                 contours=dict(
-                                     start=50,
-                                     end=100,
-                                     size=25,
-                                     coloring='lines',
-                                     showlabels=True,
-                                     labelfont=dict(size=12, color='white'))))
+        _fig.add_trace(go.Contour(
+            z=img_contour[step],
+            visible=False,
+            showscale=False,
+            hoverinfo='skip',
+            line_width=2,
+            contours=dict(start=50,
+                          end=100,
+                          size=25,
+                          coloring='lines',
+                          showlabels=True,
+                          labelfont=dict(size=12, color='white'))
+        ))
 
-        fig.update_layout({'title': '{} Slice: {}'.format(subject, j),
-                           'dragmode': 'drawclosedpath',
-                           'width': 580,
-                           'newshape.line.color': 'cyan'})
-        figs_slices.append(fig)
-        pass
+        # print(step, len(_fig.data))
 
-    logger.debug('The figs_slices is updated.')
+        fig.add_trace(_fig.data[0])
+        fig.add_trace(_fig.data[1])
 
-    dynamic_data['figs_slices'] = figs_slices
-    logger.debug('The dynamic_data is updated: {}.'.format(
-        [e for e in dynamic_data]))
+        # fig.add_trace(
+        #     go.HeatMap(),
+        #     go.Scatter(
+        #         visible=False,
+        #         line=dict(color="#00CED1", width=6),
+        #         name="𝜈 = " + str(step),
+        #         x=np.arange(0, 10, 0.01),
+        #         y=np.sin(step * np.arange(0, 10, 0.01)))
+        # )
 
-    return fig_contour, figs_slices
+    # Two-layers will be generated.
+    # The background is the gray-scaled brain slice view.
+    _fig = px.imshow(img_array[middle_slice],
+                     #  range_color=range_color,
+                     color_continuous_scale='gray')
+
+    # The upper layer is the contour of values between start=50 and end=100,
+    # it is designed to be the detected object
+    _fig.add_trace(go.Contour(
+        z=img_contour[middle_slice],
+        visible=True,
+        showscale=False,
+        hoverinfo='skip',
+        line_width=2,
+        contours=dict(start=50,
+                      end=100,
+                      size=25,
+                      coloring='lines',
+                      showlabels=True,
+                      labelfont=dict(size=12, color='white'))
+    ))
+
+    # print(step, len(_fig.data))
+
+    fig.add_trace(_fig.data[0])
+    fig.add_trace(_fig.data[1])
+
+    # Make 10th trace visible
+    # fig.data[-1].visible = False
+    # fig.data[-2].visible = False
+    # fig.data[middle_slice * 2].visible = True
+    # fig.data[middle_slice * 2 + 1].visible = True
+
+    fig.update_layout(
+        colorscale_diverging='gray',
+        width=500
+    )
+
+    # Create and add slider
+    steps = []
+    for i in range(num_slices):
+        _visible = [False] * (num_slices * 2 + 2)
+        # _visible[middle_slice * 2] = True
+        # _visible[middle_slice * 2 + 1] = True
+
+        step = dict(
+            method="update",
+            args=[{"visible": _visible},
+                  {"title": "Step: " + str(i)}],  # layout attribute
+        )
+
+        # Toggle i'th trace to "visible"
+        step["args"][0]["visible"][i*2] = True
+        # Toggle i'th trace to "visible"
+        step["args"][0]["visible"][i*2+1] = True
+        steps.append(step)
+
+    print(len(steps), len(fig.data))
+
+    sliders = [dict(
+        active=middle_slice,
+        currentvalue={"prefix": "Slice: "},
+        pad={"t": 50},
+        steps=steps
+    )]
+
+    fig.update_layout(
+        sliders=sliders,
+        colorscale_diverging='gray',
+        width=500
+    )
+
+    fig_slices = fig
+
+    return fig_contour, fig_slices
+
+    # return fig_contour, figs_slices
 
 # %%
 
@@ -500,6 +578,9 @@ app.clientside_callback(
         console.log(e);
 
         let dom = document.getElementById('subject-score')
+        dom.textContent = 'N.A.'
+
+        dom = document.getElementById('features-score')
         dom.textContent = 'N.A.'
 
         let behaviors = [
@@ -533,19 +614,6 @@ app.clientside_callback(
         Input('CT-Subject-selector', 'value')
     ]
 )
-# app.clientside_callback(
-#     """
-#     function(tab_value) {
-#         if (tab_value === 'tab-1') {
-#             document.title = 'Tab 1'
-#         } else if (tab_value === 'tab-2') {
-#             document.title = 'Tab 2'
-#         }
-#     }
-#     """,
-#     Output('blank-output', 'children'),
-#     Input('tabs-example', 'value')
-# )
 
 
 @app.callback(
@@ -553,25 +621,7 @@ app.clientside_callback(
         Output('features-table', 'children'),
         Output('features-score', 'children'),
         Output('graph-1', 'figure'),
-        Output('slider-1', 'marks'),
-        Output('slider-1', 'min'),
-        Output('slider-1', 'max'),
-        Output('slider-1', 'value'),
         Output('graph-2', 'figure'),
-
-        # Output('subject-score', 'children'),
-
-        # Output('behavior-age', 'value'),
-        # Output('behavior-gender', 'value'),
-        # Output('behavior-habit', 'value'),
-        # Output('behavior-case', 'value'),
-        # Output('behavior-medicine', 'value'),
-        # Output('behavior-GCS', 'value'),
-        # Output('behavior-NIHSS', 'value'),
-        # Output('behavior-volume', 'value'),
-        # Output('behavior-ponding', 'value'),
-        # Output('behavior-hemi', 'value'),
-        # Output('behavior-complication', 'value'),
     ],
     [
         Input('CT-Subject-selector', 'value')
@@ -589,9 +639,9 @@ def callback_subject_selection(subject):
 
     table_obj, score = mk_features_table(subject)
 
-    fig, figs_slices = mk_figures(subject)
+    fig, fig_slices = mk_figures(subject)
 
-    num = len(figs_slices)
+    num = 10  # len(figs_slices)
     marks = {i: 'Slice {}'.format(i) if i == 0 else str(i)
              for i in range(0, num, 5)}
     _min = 0
@@ -604,82 +654,16 @@ def callback_subject_selection(subject):
     # Output('features-table', 'children'),
     # Output('features-score', 'children'),
     # Output('graph-1', 'figure'),
-    # Output('slider-1', 'marks'),
-    # Output('slider-1', 'min'),
-    # Output('slider-1', 'max'),
-    # Output('slider-1', 'value'),
     # Output('graph-2', 'figure'),
-
-    # Output('subject-score', 'children'),
-
-    # Output('behavior-age', 'value'),
-    # Output('behavior-gender', 'value'),
-    # Output('behavior-habit', 'value'),
-    # Output('behavior-case', 'value'),
-    # Output('behavior-medicine', 'value'),
-    # Output('behavior-GCS', 'value'),
-    # Output('behavior-NIHSS', 'value'),
-    # Output('behavior-volume', 'value'),
-    # Output('behavior-ponding', 'value'),
-    # Output('behavior-hemi', 'value'),
-    # Output('behavior-complication', 'value'),
 
     output = (
         table_obj,
         score,
         fig,
-        marks,
-        _min,
-        _max,
-        slice,
-        figs_slices[slice],
-
-        # 'N.A',
-
-        # None,  # Age
-        # None,  # Gender
-        # [],  # Habit
-        # [],  # Case
-        # [],  # Medicine
-        # None,  # GCS
-        # None,  # NIHSS
-        # None,  # Volume
-        # None,  # Ponding
-        # None,  # Hemi
-        # [],  # Complication
+        fig_slices,
     )
 
     return output
-
-    # return table_obj, score, fig, marks, _min, _max, slice, figs_slices[slice], 'N.A.'
-
-
-# @app.callback(
-#     [
-#         Output('graph-2', 'figure')
-#     ],
-#     [
-#         Input('slider-1', 'value')
-#     ]
-# )
-# def callback_slider_1(slice_idx):
-#     '''
-#     Change Slice.
-#     '''
-#     # --------------------------------------------------------------------------------
-#     # Which Input is inputted
-#     cbcontext = [p["prop_id"] for p in dash.callback_context.triggered][0]
-#     logger.debug(
-#         'The callback_slider_1 receives the event: {}'.format(cbcontext))
-
-#     figs = dynamic_data.get('figs_slices', None)
-
-#     if figs is None:
-#         return px.scatter(x=[1, 2, 3], y=[4, 5, 6]),
-
-#     fig = figs[slice_idx]
-
-#     return fig,
 
 
 @app.callback(
@@ -739,6 +723,7 @@ def callback_behaviors_1(age, gender, habit, case, medicine, GCS, NIHSS, volume,
             score += value
 
     score = int(score)
+
     res[0] = 'Score: {}'.format(score)
 
     res = '\n'.join(res)
