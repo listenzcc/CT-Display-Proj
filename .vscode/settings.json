@@ -5,6 +5,7 @@
         "iloc",
         "ndimage",
         "NIHSS",
+        "onselect",
         "onstart",
         "scipy",
         "sitk",
