@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 import webbrowser
-
+from urllib.request import urlopen
 import time
 import threading
 # Import the required libraries
@@ -11,6 +11,8 @@ import threading
 import tkinter as tk
 # from PIL import ImageTk, Image
 
+# %%
+url = 'http://localhost:8050'
 # %%
 
 folder = Path().joinpath(os.environ['ONEDRIVE'], 'Pictures', 'DesktopPictures')
@@ -46,8 +48,8 @@ class Test():
             image=img
         )
 
-        canvas.pack(fill=tk.BOTH, expand=True)
-        # canvas.place(x=0, y=0, anchor=tk.NW)
+        # canvas.pack(fill=tk.BOTH, expand=True)
+        canvas.place(x=0, y=0, anchor=tk.NW)
 
         self.add_label()
         self.add_button()
@@ -60,16 +62,17 @@ class Test():
 
     def add_button(self):
         self.button = tk.Button(self.root,
-                                text="Click to change text below",
+                                text="Start App",
                                 command=self.changeText)
         self.button.place(x=10, y=10, anchor=tk.NW)
+        self.button.config(state=tk.DISABLED)
 
         # self.label.pack()
 
     def changeText(self, content=time.ctime()):
         print(content)
         print(time.ctime())
-        webbrowser.open('http://localhost:8050')
+        webbrowser.open(url)
         content = time.ctime()
         self.text.set(content)
 
@@ -77,11 +80,31 @@ class Test():
         self.foo()
         self.root.mainloop()
 
+    def _str(self, e):
+        s = str(e)
+        max_length = 80
+        if len(s) > max_length:
+            s = '{}.....{}'.format(s[:max_length-15], s[-10:])
+        return s
+
     def _foo(self):
+        self.resp = None
+
         while True:
             time.sleep(1)
             contents = open(log).readlines()[-5:]
-            self.text.set('\n'.join([str(e) for e in contents]))
+            self.text.set('\n'.join([self._str(e) for e in contents]))
+
+            if self.resp is None:
+                try:
+                    f = urlopen(url)
+                except Exception as err:
+                    print(err)
+                    continue
+                self.resp = f.read()
+
+                self.button.config(state=tk.ACTIVE)
+                print(self.resp[:100])
 
     def foo(self):
         t = threading.Thread(target=self._foo)
@@ -91,67 +114,15 @@ class Test():
 
 app = Test()
 
+
+def foo():
+    os.system("powershell ./serve.ps1")
+
+
+t = threading.Thread(target=foo)
+t.setDaemon(True)
+t.start()
+
 app.mainloop()
 
 # %%
-# folder = Path().joinpath(os.environ['ONEDRIVE'], 'Pictures', 'DesktopPictures')
-# files = [e for e in folder.iterdir() if e.is_file()]
-# png = [e for e in files if e.as_posix().endswith('.png')][0]
-
-# %%
-# root = Tk()
-# root.title('PythonGuides')
-# root.geometry('500x500')
-
-
-# def get_value():
-#     name = Text_Area.get()
-#     # creating a new window
-#     root2 = Tk()
-#     root2.geometry("500x500")
-#     root2.title("Include Help")
-#     # setting the Label in the window
-#     label2 = Label(root2, text=f"Welcome To Include Help {name}")
-#     label2.place(x=160, y=80)
-#     root2.mainloop()
-
-
-# canvas = Canvas(
-#     root,
-#     width=500,
-#     height=500
-# )
-
-# canvas.pack(fill=BOTH, expand=True)
-
-# img = PhotoImage(file=png, width=500, height=500)
-
-# canvas.create_image(
-#     0,
-#     0,
-#     anchor=NW,
-#     image=img
-# )
-
-# # set the string variable
-# Text_Area = StringVar()
-
-# # create a label
-# label = Label(root, text="Dynamic Label")
-
-# # placing the label at the right position
-# label.place(x=10, y=10, anchor=NW)
-
-# # creating the text area
-# # we will set the text variable in this
-# Input = Entry(root, textvariable=Text_Area, width=30)
-# Input.place(x=130, y=100)
-
-# # create a button
-# button = Button(root, text="Submit", command=get_value, bg="green")
-# button.place(x=180, y=130)
-
-# root.mainloop()
-
-
-# # %%

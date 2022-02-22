@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-
 from skimage import measure
 from tqdm.auto import tqdm
 
@@ -24,7 +23,19 @@ external_stylesheets = [
     CONFIG['assets_folder'].joinpath('basic-style.css').as_posix(),
 ]
 
-app = dash.Dash(CONFIG['app_name'], external_stylesheets=external_stylesheets)
+meta_tags = [
+    # {'name': 'Cache-Control', 'content': 'no-cache, no-store, must-revalidate'},
+    # {'name': 'Pragma', 'content': 'no-cache'},
+    # {'name': 'Expires', 'content': '0'}
+]
+
+
+app = dash.Dash(
+    CONFIG['app_name'],
+    external_stylesheets=external_stylesheets,
+    meta_tags=meta_tags,
+    prevent_initial_callbacks=True,
+)
 
 # %%
 dynamic_data = dict()
@@ -403,6 +414,8 @@ def mk_features_table(subject):
         data=data
     )
 
+    # df.to_csv('a.csv')
+
     return table_obj, score
 
 
@@ -495,6 +508,7 @@ def mk_figures(subject):
 # %%
 
 
+# Display the #graph-2 if #slider-1 is changed
 app.clientside_callback(
     """
     (e) => {
@@ -510,7 +524,8 @@ app.clientside_callback(
     ],
     [
         Input('slider-1', 'value')
-    ]
+    ],
+    prevent_initialization=True,
 )
 
 # Reset all things on subject selection
@@ -557,7 +572,8 @@ app.clientside_callback(
     ],
     [
         Input('CT-Subject-selector', 'value')
-    ]
+    ],
+    prevent_initialization=True,
 )
 
 
@@ -629,7 +645,8 @@ def callback_subject_selection(subject):
     ],
     [
         Input('slider-1', 'value'),
-    ]
+    ],
+    prevent_initialization=True,
 )
 def callback_slider_1(value):
     # --------------------------------------------------------------------------------
@@ -638,7 +655,11 @@ def callback_slider_1(value):
     logger.debug(
         'The callback_slider_1 receives the event: {}'.format(cbcontext))
 
-    fig = dynamic_data['figs_slices'][value]
+    if 'figs_slices' in dynamic_data:
+        fig = dynamic_data['figs_slices'][value]
+    else:
+        fig = px.scatter([1, 2, 3])
+
     return fig,
 
 
@@ -659,7 +680,8 @@ def callback_slider_1(value):
         Input('behavior-ponding', 'value'),
         Input('behavior-hemi', 'value'),
         Input('behavior-complication', 'value'),
-    ]
+    ],
+    prevent_initialization=True,
 )
 def callback_behaviors_1(age, gender, habit, case, medicine, GCS, NIHSS, volume, ponding, hemi, complication):
     # --------------------------------------------------------------------------------
@@ -710,6 +732,6 @@ def callback_behaviors_1(age, gender, habit, case, medicine, GCS, NIHSS, volume,
 # %%
 if __name__ == '__main__':
     logger.info('Server is estimated in {}'.format('http://127.0.0.1:8050'))
-    app.run_server(debug=True)
+    app.run_server(debug=False)
 
 # %%
