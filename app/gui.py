@@ -6,20 +6,16 @@ import webbrowser
 from urllib.request import urlopen
 import time
 import threading
-# Import the required libraries
-# from tkinter import *
 import tkinter as tk
-# from PIL import ImageTk, Image
+from PIL import ImageTk, Image
 
 # %%
 url = 'http://localhost:8050'
 # %%
 
-folder = Path().joinpath(os.environ['ONEDRIVE'], 'Pictures', 'DesktopPictures')
-files = [e for e in folder.iterdir() if e.is_file()]
-png = [e for e in files if e.as_posix().endswith('.png')][0]
+logo_file = Path.cwd().joinpath('./assets/logo.png')
 
-log = Path(__file__).joinpath('../../log/CTDisplay.log')
+log_file = Path.cwd().joinpath('../log/CTDisplay.log')
 
 # %%
 
@@ -32,49 +28,51 @@ class Test():
 
         self.root.title(title)
         self.root.geometry('{}x{}'.format(width, height))
+        self.root.configure(background='grey')
 
-        img = tk.PhotoImage(file=png, width=width, height=height)
+        self.frame1 = tk.Frame(self.root)
 
-        canvas = tk.Canvas(
-            self.root,
-            width=width,
-            height=width
-        )
+        img = Image.open(logo_file.as_posix())
+        img = img.resize((50, 50))  # , Image.ANTIALIAS)
+        self.img = ImageTk.PhotoImage(img, size=(50, 50))
+        panel = tk.Label(self.frame1, image=self.img)
 
-        canvas.create_image(
-            0,
-            0,
-            anchor=tk.NW,
-            image=img
-        )
-
-        # canvas.pack(fill=tk.BOTH, expand=True)
-        canvas.place(x=0, y=0, anchor=tk.NW)
-
-        self.add_label()
         self.add_button()
+        self.add_text()
 
-    def add_label(self):
-        self.text = tk.StringVar()
-        self.text.set("Test")
-        self.label = tk.Label(self.root, textvariable=self.text)
-        self.label.place(x=500, y=500, anchor=tk.SE)
+        self.frame1.pack(fill=tk.X)
+
+        self.button.pack(side=tk.LEFT, padx=10, pady=3)
+        self.button2.pack(side=tk.LEFT, padx=10, pady=3)
+
+        self.text.pack(fill=tk.BOTH)
+        self.text.pack_propagate(0)
+
+        self.scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+        panel.pack(side=tk.RIGHT)
+
+    def add_text(self):
+        self.text = tk.Text(self.root, bg='black', fg='lightgreen', height=30)
+        self.scroll = tk.Scrollbar(self.text, command=self.text.yview)
+        self.text.configure(yscrollcommand=self.scroll.set)
+        return
 
     def add_button(self):
-        self.button = tk.Button(self.root,
+        self.button = tk.Button(self.frame1,
                                 text="Start App",
-                                command=self.changeText)
-        self.button.place(x=10, y=10, anchor=tk.NW)
-        self.button.config(state=tk.DISABLED)
+                                state=tk.DISABLED,
+                                command=self.update_log)
 
-        # self.label.pack()
+        self.button2 = tk.Button(self.frame1,
+                                 text="Botton 2",
+                                 state=tk.DISABLED)
+        return
 
-    def changeText(self, content=time.ctime()):
-        print(content)
-        print(time.ctime())
+    def update_log(self, content=time.ctime()):
         webbrowser.open(url)
         content = time.ctime()
-        self.text.set(content)
+        self.text.insert(tk.END, content)
 
     def mainloop(self):
         self.foo()
@@ -82,18 +80,20 @@ class Test():
 
     def _str(self, e):
         s = str(e)
-        max_length = 80
+        max_length = 200
         if len(s) > max_length:
             s = '{}.....{}'.format(s[:max_length-15], s[-10:])
-        return s
+
+        return s.strip()
 
     def _foo(self):
         self.resp = None
 
         while True:
             time.sleep(1)
-            contents = open(log).readlines()[-5:]
-            self.text.set('\n'.join([self._str(e) for e in contents]))
+            contents = open(log_file).readlines()[-5:]
+            self.text.insert(tk.END, '\n'.join(
+                [self._str(e) for e in contents]))
 
             if self.resp is None:
                 try:
@@ -115,14 +115,15 @@ class Test():
 app = Test()
 
 
-def foo():
-    os.system("powershell ./serve.ps1")
+if __name__ == '__main__':
 
+    def foo():
+        os.system("powershell ./serve.ps1")
 
-t = threading.Thread(target=foo)
-t.setDaemon(True)
-t.start()
+    # t = threading.Thread(target=foo)
+    # t.setDaemon(True)
+    # t.start()
 
-app.mainloop()
+    app.mainloop()
 
 # %%
