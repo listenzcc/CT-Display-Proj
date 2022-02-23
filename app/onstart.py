@@ -12,7 +12,8 @@ from pathlib import Path
 
 # %%
 CONFIG = dict(
-    app_name='CT Displayer & Estimator',
+    short_name='CT A.D.',
+    app_name='CT Analysis & Display',
     templates_folder=Path(__file__).joinpath('../../templates'),
     subjects_folder=Path(__file__).joinpath('../../subjects'),
     log_folder=Path(__file__).joinpath('../../log'),
