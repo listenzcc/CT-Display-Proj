@@ -1,4 +1,7 @@
 # %%
+import flask
+from pathlib import Path
+import base64
 import dash
 from dash import dcc
 from dash import html
@@ -12,10 +15,16 @@ import plotly.graph_objects as go
 from skimage import measure
 from tqdm.auto import tqdm
 
+import threading
+
+from werkzeug.serving import run_simple
+
 from onstart import CONFIG, logger
 
 from load_templates import WEIGHTS, RANGE_TABLE, OFFSET
 from load_subjects import SUBJECT_MANAGER
+
+from gui import gui
 
 # %%
 external_stylesheets = [
@@ -231,7 +240,12 @@ _local_labelStyle = {'min-width': '100px'}
 behavior_div_children = [
     # --------------------------------------------------------------------------------
     # Subject information
-    html.H2('Subject Score'),
+    html.Div(
+        className=className,
+        style={'background-image': 'url("/20.png")',
+               'color': 'cornsilk'},
+        children=[html.H2('Subject Score')],
+    ),
     html.Div(
         id='subject-score',
         className='{} {}'.format(className, 'score'),
@@ -406,7 +420,12 @@ behavior_div_children = [
 ]
 
 features_div_children = [
-    html.H2('Features Score'),
+    html.Div(
+        className=className,
+        style={'background-image': 'url("/20.png")',
+               'color': 'cornsilk'},
+        children=[html.H2('Features Score')],
+    ),
     html.Div(
         id='features-score',
         className='{} {}'.format(className, 'score'),
@@ -486,9 +505,12 @@ app.layout = html.Div(
         html.Div(
             id='app-title-div',
             className=className,
+            style={'background-image': 'url("/10.jpg")',
+                   'color': 'cornsilk',
+                   'background-size': 'cover'},
             children=[
                 html.H1(id='app-title',
-                        children='No Title')
+                        children=CONFIG['app_name'])
             ]
         ),
 
@@ -754,9 +776,34 @@ def callback_behaviors_1(age, gender, habit, case, medicine, GCS, NIHSS, volume,
     return res, score
 
 
+# Add a static image route that serves images from desktop
+# Be *very* careful here - you don't want to serve arbitrary files
+# from your computer or server
+
+
+@app.server.route('/<asset_name>')
+def serve_image(asset_name):
+    image_directory = Path(__file__).joinpath('../assets')
+    if asset_name not in [e.name for e in image_directory.iterdir() if e.is_file()]:
+        logger.error('Can not find asset: {}'.format(asset_name))
+        raise Exception('Can not find asset: {}'.format(asset_name))
+    logger.debug('Got asset {}'.format(asset_name))
+    return flask.send_from_directory(image_directory, asset_name)
+
+
 # %%
 if __name__ == '__main__':
-    logger.info('Server is estimated in {}'.format('http://127.0.0.1:8050'))
-    app.run_server(debug=False)
+    port = 8693
+    logger.info('Server is estimated in {}:{}'.format(
+        'http://localhost', port))
+
+    t = threading.Thread(target=run_simple, args=(
+        'localhost', port, app.server))
+    t.setDaemon(True)
+    t.start()
+
+    gui.mainloop()
+
+    print('Bye Bye.')
 
 # %%

@@ -4,7 +4,7 @@ div.allow-debug {
     border-top: 1px solid grey;
     transition: transform 0.1s;
     margin-top: 3px;
-    background-color: #ddd;
+    background-color: #eee;
 }
 
 div.allow-debug:hover {
