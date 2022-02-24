@@ -43,7 +43,7 @@ app = dash.Dash(
     CONFIG['app_name'],
     external_stylesheets=external_stylesheets,
     meta_tags=meta_tags,
-    prevent_initial_callbacks=True,
+    # prevent_initial_callbacks=True,
 )
 
 # %%
@@ -177,6 +177,7 @@ def mk_figures(subject):
     # The figs is a list of slice views
     figs_slices = []
     range_color = (-1000, 2000)
+    range_color = (0, 200)
     for j in tqdm(range(len(img_array)), 'Prepare Slices'):
         # Two-layers will be generated.
         # The background is the gray-scaled brain slice view.
@@ -191,8 +192,8 @@ def mk_figures(subject):
                                  hoverinfo='skip',
                                  line_width=2,
                                  contours=dict(
-                                     start=50,
-                                     end=100,
+                                     start=45,
+                                     end=101,
                                      size=25,
                                      coloring='lines',
                                      showlabels=True,
@@ -526,6 +527,10 @@ app.layout = html.Div(
                     clearable=False,
                     options=subject_selector_options,
                     value=subject
+                ),
+                html.Textarea(
+                    id='CT-Subject-textarea',
+                    children='[Place Holder]'
                 )
             ]
         ),
@@ -632,6 +637,7 @@ app.clientside_callback(
         Output('slider-1', 'min'),
         Output('slider-1', 'max'),
         Output('slider-1', 'value'),
+        Output('CT-Subject-textarea', 'children')
         # Output('graph-2', 'figure'),
     ],
     [
@@ -682,6 +688,7 @@ def callback_subject_selection(subject):
         _min,
         _max,
         _slice,
+        '[Place Holder]',
         # figs_slices[_slice],
     )
 

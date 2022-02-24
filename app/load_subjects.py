@@ -14,6 +14,7 @@ from tqdm.auto import tqdm
 
 from pathlib import Path
 
+from toolbox import count_limit_img_contour
 from onstart import CONFIG, logger
 
 # %%
@@ -72,7 +73,7 @@ class Subject_Manager(object):
 
         return img_array
 
-    def compute_contour(self, img_array, kernel=np.ones((5, 5, 5)), footprint=np.ones((5, 5, 5))):
+    def compute_contour(self, img_array, kernel=np.ones((2, 5, 5)), footprint=np.ones((5, 5, 5))):
         # Mark the region of interest
         # Remove the skull for calculation,
         # using the maximum_filter method.
@@ -81,10 +82,16 @@ class Subject_Manager(object):
         img_contour[mask > 200] = 0
 
         # Remove the **small** nodes for better solution.
-        mask = img_contour > 50
+        mask = img_contour > 45
         mask = binary_erosion(mask, kernel)
         mask = binary_dilation(mask, kernel)
         img_contour[mask < 1] = 0
+
+        # img_contour = count_limit_img_contour(img_contour)
+
+        # with open('a.npy', 'wb') as f:
+        #     np.save(f, img_array)
+        #     np.save(f, img_contour)
 
         return img_contour
 
