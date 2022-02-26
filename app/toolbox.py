@@ -13,7 +13,7 @@ from onstart import logger
 # img_array.shape, img_contour.shape
 
 
-def count_limit_img_contour(img_contour, sz=2, count_limit=10000):
+def count_limit_img_contour(img_contour, sz=2, count_limit=5000):
     # -- %%
     img_shadow = img_contour * 0
 
@@ -55,6 +55,8 @@ def count_limit_img_contour(img_contour, sz=2, count_limit=10000):
                 *[_two_links.pop(e, set()) for e in _two_links.get(nid, [])])
 
     logger.debug('Found raw cluster for {}'.format(len(_two_links)))
+    logger.debug('The clusters have counts of {}'.format(
+        sorted([len(e) for _, e in _two_links.items()], reverse=True)))
 
     # -- %%
     selects = [(a, b, len(b))
