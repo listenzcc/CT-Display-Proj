@@ -1,4 +1,5 @@
 # %%
+import json
 import flask
 from pathlib import Path
 import base64
@@ -56,8 +57,11 @@ def subject_onselect(subject):
 
     dynamic_data['subject'] = subject
 
-    mk_features_table(subject)
-    mk_figures(subject)
+    # mk_features_table(subject)
+    # mk_figures(subject)
+
+    mk_figure_3d(subject)
+    mk_figures_slices(subject, use_dynamic_data=False)
 
     logger.debug('The dynamic_data is updated, the keys are: {}.'.format(
         [e for e in dynamic_data]))
@@ -65,15 +69,29 @@ def subject_onselect(subject):
     return
 
 
+def slice_view_recompute(threshold, use_dynamic_data):
+    subject = dynamic_data['subject']
+    mk_figures_slices(subject, threshold, shrink=True,
+                      use_dynamic_data=use_dynamic_data)
+    return
+
+
 def mk_features_table(subject):
     # Try get_features only use the subject,
     # Or will try to compute the features.
-    try:
-        df = SUBJECT_MANAGER.get_features(subject)
-    except AssertionError:
-        img_array = SUBJECT_MANAGER.get_array(subject)
-        img_contour = SUBJECT_MANAGER.compute_contour(img_array)
-        df = SUBJECT_MANAGER.get_features(subject, img_array, img_contour)
+
+    # Not using it
+    # try:
+    #     df = SUBJECT_MANAGER.get_features(subject)
+    # except AssertionError:
+    #     img_array = SUBJECT_MANAGER.get_array(subject)
+    #     img_contour = SUBJECT_MANAGER.compute_contour(img_array)
+    #     df = SUBJECT_MANAGER.get_features(subject, img_array, img_contour)
+
+    img_array = dynamic_data['img_array']
+    img_contour = dynamic_data['img_contour'].copy()
+    img_contour[img_contour >= 200] = 0
+    df = SUBJECT_MANAGER.get_features(subject, img_array, img_contour)
 
     # N.A. refers we found no ROI,
     # so we do nothing for it.
@@ -112,6 +130,7 @@ def mk_features_table(subject):
         for col in columns:
             df[col] = df[col].map(_format)
 
+    df['threshold'] = dynamic_data['threshold']
     columns = [{"name": i, "id": i} for i in df.columns]
     data = df.to_dict('records')
 
@@ -126,7 +145,118 @@ def mk_features_table(subject):
     return table_obj, score
 
 
+def mk_figure_3d(subject):
+    img_array = SUBJECT_MANAGER.get_array(subject)
+    img_contour = SUBJECT_MANAGER.compute_contour(img_array)
+
+    # --------------------------------------------------------------------------------
+    # The fig_contour is the 3D view of the contour surface
+    data = []
+
+    # Skull
+    color = 'grey'
+    verts, faces, normals, values = measure.marching_cubes(img_array,
+                                                           500,
+                                                           step_size=3)
+    x, y, z = verts.T
+    i, j, k = faces.T
+
+    logger.debug('Using color: "{}" rendering vertex with shape {}'.format(
+        color, [e.shape for e in [x, y, z, i, j, k]]))
+
+    data.append(
+        go.Mesh3d(x=x, y=y, z=z, color=color, opacity=0.2, i=i, j=j, k=k)
+    )
+
+    # Target
+    if np.count_nonzero(img_contour > 50):
+        color = 'purple'
+        verts, faces, normals, values = measure.marching_cubes(img_contour,
+                                                               50,
+                                                               step_size=3)
+        x, y, z = verts.T
+        i, j, k = faces.T
+
+        logger.debug('Using color: "{}" rendering vertex with shape {}'.format(
+            color, [e.shape for e in [x, y, z, i, j, k]]))
+
+        data.append(
+            go.Mesh3d(x=x, y=y, z=z, color=color, opacity=0.3, i=i, j=j, k=k)
+        )
+
+    layout = dict(scene={'aspectmode': 'data'},
+                  width=600,
+                  title=subject)
+    fig_contour = go.Figure(data, layout=layout)
+
+    dynamic_data['fig_contour'] = fig_contour
+    dynamic_data['img_array'] = img_array
+    dynamic_data['img_contour'] = img_contour
+    logger.debug('The fig of 3D is updated.')
+
+    return fig_contour
+
+
+def mk_figures_slices(subject, threshold=None, shrink=False, use_dynamic_data=False):
+    img_array = SUBJECT_MANAGER.get_array(subject)
+    if use_dynamic_data:
+        img_contour = dynamic_data['img_contour']
+    else:
+        img_contour = SUBJECT_MANAGER.compute_contour(
+            img_array, threshold, shrink)
+
+    if threshold is None:
+        threshold = 50
+
+    dynamic_data['threshold'] = threshold
+
+    # --------------------------------------------------------------------------------
+    # The figs is a list of slice views
+    figs_slices = []
+    range_color = (-1000, 2000)
+    range_color = (0, 200)
+    for j in tqdm(range(len(img_array)), 'Prepare Slices'):
+        # Two-layers will be generated.
+        # The background is the gray-scaled brain slice view.
+        fig = px.imshow(img_array[j],
+                        range_color=range_color,
+                        color_continuous_scale='gray')
+
+        # The upper layer is the contour of values between start=50 and end=100,
+        # it is designed to be the detected object
+        fig.add_trace(go.Contour(z=img_contour[j],
+                                 showscale=False,
+                                 hoverinfo='skip',
+                                 line_width=2,
+                                 contours=dict(
+                                     start=threshold,
+                                     end=101,
+                                     size=25,
+                                     coloring='lines',
+                                     showlabels=True,
+                                     labelfont=dict(size=12, color='white'))))
+
+        fig.update_layout({'title': 'Subj.{} Thre.{} Slic.{}'.format(subject, threshold, j),
+                           'dragmode': 'drawrect',
+                           'width': 580,
+                           'newshape.line.width': 1,
+                           'newshape.line.color': 'cyan'})
+        figs_slices.append(fig)
+        pass
+
+    dynamic_data['figs_slices'] = figs_slices
+    # If the dynamic_data['img_contour'] is not used,
+    # it should be updated.
+    if not use_dynamic_data:
+        dynamic_data['img_contour'] = img_contour
+
+    logger.debug('The figs_slices is updated.')
+
+    return figs_slices
+
+
 def mk_figures(subject):
+    return 'Invalid Method'
     img_array = SUBJECT_MANAGER.get_array(subject)
     img_contour = SUBJECT_MANAGER.compute_contour(img_array)
 
@@ -200,9 +330,10 @@ def mk_figures(subject):
                                      labelfont=dict(size=12, color='white'))))
 
         fig.update_layout({'title': '{} Slice: {}'.format(subject, j),
-                           'dragmode': 'drawclosedpath',
+                           #    'dragmode': 'drawclosedpath',
                            'width': 580,
-                           'newshape.line.color': 'cyan'})
+                           #    'newshape.line.color': 'cyan',
+                           })
         figs_slices.append(fig)
         pass
 
@@ -443,12 +574,53 @@ features_div_children = [
             html.Div(
                 className=className,
                 children=[
+                    html.H2('Volume View'),
+                    html.Div(
+                        className=className,
+                        children=[html.Label('The 3D view of all candidates')]),
+                    dcc.Loading(dcc.Graph(
+                        id='graph-1',
+                        figure=dynamic_data['fig_contour']
+                    ))
+                ]
+            ),
+            html.Div(
+                className=className,
+                style={'min-width': '400px'},
+                children=[
                     html.H2('Slice View'),
-                    dcc.Graph(
+                    html.Div(
+                        className=className,
+                        style={'display': 'flex', 'flex-direction': 'row',
+                               'padding-left': '10px'},
+                        children=[html.Label('Change the threshold:'),
+                                  html.Pre(
+                                      id='annotations-data',
+                                  style={'display': 'none'},
+                                  children=['annotations-data']),
+                                  dcc.Dropdown(
+                                      id='Threshold-selector',
+                            style={'width': '150px'},
+                            clearable=False,
+                            options=[{'label': 35, 'value': 35},
+                                     {'label': 40, 'value': 40},
+                                     {'label': 45, 'value': 45},
+                                     {'label': 50, 'value': 50},
+                                     {'label': 55, 'value': 55},
+                                     {'label': 60, 'value': 60}, ],
+                            value=50,
+                        ),
+                            html.Button(
+                                      id='Threshold-apply',
+                            style={'width': '150px'},
+                            children=['Apply'])
+                        ]
+                    ),
+                    dcc.Loading(dcc.Graph(
                         id='graph-2',
                         figure=dynamic_data['figs_slices'][int(
                             len(dynamic_data['figs_slices']) / 2)]
-                    ),
+                    )),
                     dcc.Slider(
                         id='slider-1',
                         min=0,
@@ -459,16 +631,6 @@ features_div_children = [
                     ),
                 ]
             ),
-            dcc.Loading(html.Div(
-                className=className,
-                children=[
-                    html.H2('Volume View'),
-                    dcc.Graph(
-                        id='graph-1',
-                        figure=dynamic_data['fig_contour']
-                    )
-                ]
-            )),
         ]
     ),
 
@@ -482,6 +644,8 @@ features_div_children = [
             html.Div(
                 className=className,
                 children=[
+                    html.Button(id='Compute-features',
+                                children=['Compute Features in 1 - 5 minutes']),
                     dcc.Loading(html.Div(
                         id='features-table',
                         className=className,
@@ -575,7 +739,9 @@ app.clientside_callback(
         Output('blank-output-2', 'children')
     ],
     [
-        Input('slider-1', 'value')
+        # Input('slider-1', 'value'),
+        Input('Threshold-selector', 'value'),
+        Input('Threshold-apply', 'n_clicks')
     ],
 )
 
@@ -632,6 +798,39 @@ app.clientside_callback(
     [
         Output('features-table', 'children'),
         Output('features-score', 'children'),
+    ],
+    [
+        Input('Compute-features', 'n_clicks')
+    ],
+    prevent_initialization=True,
+)
+def callback_compute_features(n_clicks):
+    # --------------------------------------------------------------------------------
+    # Which Input is inputted
+    cbcontext = [p["prop_id"] for p in dash.callback_context.triggered][0]
+    logger.debug(
+        'The callback_compute_features receives the event: {}, {}'.format(cbcontext, n_clicks))
+
+    if not n_clicks:
+        return 'Not Computed Yet', 'N.A.'
+
+    subject = dynamic_data['subject']
+
+    mk_features_table(subject)
+
+    table_obj = dynamic_data['table_obj']
+    score = dynamic_data['score']
+
+    if isinstance(score, float):
+        score = '{:0.2f}'.format(score)
+
+    return table_obj, score
+
+
+@app.callback(
+    [
+        # Output('features-table', 'children'),
+        # Output('features-score', 'children'),
         Output('graph-1', 'figure'),
         Output('slider-1', 'marks'),
         Output('slider-1', 'min'),
@@ -656,13 +855,8 @@ def callback_subject_selection(subject):
 
     subject_onselect(subject)
 
-    table_obj = dynamic_data['table_obj']
-    score = dynamic_data['score']
     fig_contour = dynamic_data['fig_contour']
     figs_slices = dynamic_data['figs_slices']
-
-    if isinstance(score, float):
-        score = '{:0.2f}'.format(score)
 
     num = len(figs_slices)
     marks = {i: 'Slice {}'.format(i) if i == 0 else str(i)
@@ -681,8 +875,6 @@ def callback_subject_selection(subject):
     # Output('graph-2', 'figure'),
 
     output = (
-        table_obj,
-        score,
         fig_contour,
         marks,
         _min,
@@ -696,22 +888,84 @@ def callback_subject_selection(subject):
 
 
 @app.callback(
+    Output("annotations-data", "children"),
+    Input("graph-2", "relayoutData"),
+    Input('slider-1', 'value'),
+    prevent_initial_call=True,
+)
+def on_new_annotation(relayout_data, value):
+    # --------------------------------------------------------------------------------
+    # Which Input is inputted
+    cbcontext = [p["prop_id"] for p in dash.callback_context.triggered][0]
+    logger.debug(
+        'The on_new_annotation receives the event: {}'.format(cbcontext))
+
+    logger.debug('Annotating the slice of {}'.format(value))
+
+    # [
+    #   {
+    #     "editable": true,
+    #     "xref": "x",
+    #     "yref": "y",
+    #     "layer": "above",
+    #     "opacity": 1,
+    #     "line": {
+    #       "color": "cyan",
+    #       "width": 1,
+    #       "dash": "solid"
+    #     },
+    #     "fillcolor": "rgba(0,0,0,0)",
+    #     "fillrule": "evenodd",
+    #     "type": "rect",
+    #     "x0": 231.55161290322582,
+    #     "y0": 330.958064516129,
+    #     "x1": 343.86129032258066,
+    #     "y1": 185.61612903225807
+    #   }
+    # ]
+    if "shapes" in relayout_data:
+        obj = relayout_data["shapes"]
+
+        for dct in obj:
+            x0 = dct['x0']
+            x1 = dct['x1']
+            y0 = dct['y0']
+            y1 = dct['y1']
+            print(x0, x1, y0, y1)
+            dynamic_data['img_contour'][int(value),
+                                        int(y0):int(y1),
+                                        int(x0):int(x1)] = 0
+
+        return obj
+    else:
+        return dash.no_update
+
+
+@app.callback(
     [
         Output('graph-2', 'figure'),
     ],
     [
         Input('slider-1', 'value'),
+        Input('Threshold-selector', 'value'),
+        Input('Threshold-apply', 'n_clicks'),
     ],
 )
-def callback_slider_1(value):
+def callback_slider_1(slice, threshold, n_clicks):
     # --------------------------------------------------------------------------------
     # Which Input is inputted
     cbcontext = [p["prop_id"] for p in dash.callback_context.triggered][0]
     logger.debug(
         'The callback_slider_1 receives the event: {}'.format(cbcontext))
 
+    if cbcontext.startswith('Threshold-apply'):
+        slice_view_recompute(threshold, use_dynamic_data=True)
+
+    if cbcontext.startswith('Threshold-selector'):
+        slice_view_recompute(threshold, use_dynamic_data=False)
+
     if 'figs_slices' in dynamic_data:
-        fig = dynamic_data['figs_slices'][int(value)]
+        fig = dynamic_data['figs_slices'][int(slice)]
     else:
         fig = px.scatter([1, 2, 3])
 

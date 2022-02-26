@@ -73,21 +73,34 @@ class Subject_Manager(object):
 
         return img_array
 
-    def compute_contour(self, img_array, kernel=np.ones((2, 5, 5)), footprint=np.ones((5, 5, 5))):
+    def compute_contour(self, img_array, threshold=None, shrink=False, kernel=np.ones((2, 5, 5)), footprint=np.ones((5, 5, 5))):
         # Mark the region of interest
         # Remove the skull for calculation,
         # using the maximum_filter method.
         img_contour = img_array.copy()
-        mask = maximum_filter(img_array.copy(), footprint=footprint)
+
+        if threshold is None:
+            threshold = 50
+            logger.debug(
+                'The threshold is not provided, using {} for default value.'.format(threshold))
+
+        mask = maximum_filter(img_array, footprint=footprint)
         img_contour[mask > 200] = 0
 
+        mask = maximum_filter(img_array, footprint=np.ones((10, 10, 10)))
+        img_contour[mask > 500] = 0
+
         # Remove the **small** nodes for better solution.
-        mask = img_contour > 45
+        mask = img_contour > threshold
         mask = binary_erosion(mask, kernel)
         mask = binary_dilation(mask, kernel)
         img_contour[mask < 1] = 0
 
-        # img_contour = count_limit_img_contour(img_contour)
+        if shrink:
+            # img_contour = count_limit_img_contour(img_contour)
+            logger.debug('The shrinking method is applied.')
+        else:
+            logger.debug('The shrinking method is not required.')
 
         # with open('a.npy', 'wb') as f:
         #     np.save(f, img_array)
@@ -105,7 +118,7 @@ class Subject_Manager(object):
 
         # If we have computed the features,
         # use it.
-        allow_use_history = True
+        allow_use_history = False
         if csv.is_file() and allow_use_history:
             features_table = pd.read_csv(csv, index_col=0)
             logger.debug(
