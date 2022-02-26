@@ -711,7 +711,7 @@ def callback_slider_1(value):
         'The callback_slider_1 receives the event: {}'.format(cbcontext))
 
     if 'figs_slices' in dynamic_data:
-        fig = dynamic_data['figs_slices'][value]
+        fig = dynamic_data['figs_slices'][int(value)]
     else:
         fig = px.scatter([1, 2, 3])
 
