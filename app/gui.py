@@ -56,7 +56,7 @@ class MainGUI():
         return self.frame_logo
 
     def _button_start_app_on_click(self, content=time.ctime()):
-        webbrowser.open(url)
+        webbrowser.open_new(url)
         content = time.ctime()
         self.text_logger.insert(tk.END, content)
 

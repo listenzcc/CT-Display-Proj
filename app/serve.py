@@ -184,7 +184,8 @@ def mk_figure_3d(subject):
             go.Mesh3d(x=x, y=y, z=z, color=color, opacity=0.3, i=i, j=j, k=k)
         )
 
-    layout = dict(scene={'aspectmode': 'data'},
+    layout = dict(scene={'aspectratio': {'x': 1, 'y': 1, 'z': 1}},
+                  # scene={'aspectmode': 'data'},
                   width=600,
                   title=subject)
     fig_contour = go.Figure(data, layout=layout)
@@ -923,14 +924,20 @@ def on_new_annotation(relayout_data, value):
     #     "y1": 185.61612903225807
     #   }
     # ]
+    if relayout_data is None:
+        return dash.no_update
+
     if "shapes" in relayout_data:
         obj = relayout_data["shapes"]
 
         for dct in obj:
-            x0 = dct['x0']
-            x1 = dct['x1']
-            y0 = dct['y0']
-            y1 = dct['y1']
+            x0 = np.min([dct['x0'], dct['x1']])
+            x1 = np.max([dct['x0'], dct['x1']])
+            y0 = np.min([dct['y0'], dct['y1']])
+            y1 = np.max([dct['y0'], dct['y1']])
+            # x1 = dct['x1']
+            # y0 = dct['y0']
+            # y1 = dct['y1']
             print(x0, x1, y0, y1)
             dynamic_data['img_contour'][int(value),
                                         int(y0):int(y1),
