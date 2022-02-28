@@ -168,17 +168,17 @@ class Subject_Manager(object):
         # Compute Wavelet Image [featureImage, name, {}] x 8 (wavelet-LLH, LLL, ...)
         waveletImages = [e
                          for e in radiomics.imageoperations.getWaveletImage(image, mask)]
-        print('--------', len(waveletImages), waveletImages[0])
+        logger.debug('--------', len(waveletImages), waveletImages[0])
 
         # Compute Exponential Image [image, name, {}] x 1 (exponential)
         exponentialImages = [e
                              for e in radiomics.imageoperations.getExponentialImage(image, mask)]
-        print('--------', len(exponentialImages), exponentialImages[0])
+        logger.debug('--------', len(exponentialImages), exponentialImages[0])
 
         # Compute Squareroot Image [image, name, {}] x 1 (squareroot)
         squarerootImages = [e
                             for e in radiomics.imageoperations.getSquareRootImage(image, mask)]
-        print('--------', len(squarerootImages), squarerootImages[0])
+        logger.debug('--------', len(squarerootImages), squarerootImages[0])
 
         rfe.loadImage(image, mask)
         logger.debug(
@@ -203,11 +203,13 @@ class Subject_Manager(object):
         features = rfe.computeFeatures(image, mask, 'original')
         for name in tqdm(features, 'Collecting Features'):
             lst.append((name, features[name]))
+        logger.debug('Collected original features')
 
         bbox, _ = radiomics.imageoperations.checkMask(image, mask)
         features = rfe.computeShape(image, mask, bbox)
         for name in tqdm(features, 'Collecting Features'):
             lst.append((name, features[name]))
+        logger.debug('Collected shape features')
 
         # Features of exponential x 1
         rfe.disableAllFeatures()
@@ -219,6 +221,7 @@ class Subject_Manager(object):
             exponentialImages[0][0], mask, exponentialImages[0][1])
         for name in tqdm(features, 'Collecting Features'):
             lst.append((name, features[name]))
+        logger.debug('Collected exponential features')
 
         # Features of squareroot x 1
         rfe.disableAllFeatures()
@@ -230,6 +233,7 @@ class Subject_Manager(object):
             squarerootImages[0][0], mask, squarerootImages[0][1])
         for name in tqdm(features, 'Collecting Features'):
             lst.append((name, features[name]))
+        logger.debug('Collected squareroot features')
 
         # Features of wavelet x ???
         rfe.disableAllFeatures()
@@ -244,6 +248,7 @@ class Subject_Manager(object):
             features = rfe.computeFeatures(e[0], mask, e[1])
             for name in tqdm(features, e[1]):
                 lst.append((name, features[name]))
+        logger.debug('Collected wavelet features')
 
         df = pd.DataFrame(lst, columns=['name', 'value'])
         df['subject'] = subject

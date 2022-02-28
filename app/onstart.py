@@ -13,13 +13,18 @@ from pathlib import Path
 # %%
 CONFIG = dict(
     short_name='CT A.D.',
-    app_name='CT Analysis & Display',
+    app_name='基于影像组学的脑出血预后智能评估系统 V-3.0',
     templates_folder=Path(__file__).joinpath('../../templates'),
     subjects_folder=Path(__file__).joinpath('../../subjects'),
     log_folder=Path(__file__).joinpath('../../log'),
     assets_folder=Path('assets')
     # assets_folder=Path(__file__).joinpath('../assets').relative_to(Path.cwd())
 )
+
+CONFIG['acknowledge'] = open(
+    Path(__file__).joinpath('../acknowledge.md'), 'rb').read().decode('utf-8')
+
+print(CONFIG['acknowledge'], type(CONFIG['acknowledge']))
 
 # %%
 logger_kwargs = dict(

@@ -41,16 +41,29 @@ meta_tags = [
 
 
 app = dash.Dash(
-    CONFIG['app_name'],
+    'mainTopic',  # CONFIG['app_name'],
     external_stylesheets=external_stylesheets,
     meta_tags=meta_tags,
     # prevent_initial_callbacks=True,
 )
 
 # %%
-dynamic_data = dict()
+dynamic_data = dict(
+    slice_distance=10,
+    pixel_resolution=1.0,
+)
 
 # %%
+
+
+def mk_threshold_options():
+    options = []
+    for j in range(20, 60, 2):
+        options.append(dict(
+            label=j,
+            value=j
+        ))
+    return options
 
 
 def subject_onselect(subject):
@@ -88,6 +101,7 @@ def mk_features_table(subject):
     #     img_contour = SUBJECT_MANAGER.compute_contour(img_array)
     #     df = SUBJECT_MANAGER.get_features(subject, img_array, img_contour)
 
+    logger.debug('Computing features will cost about 1 - 5 minutes.')
     img_array = dynamic_data['img_array']
     img_contour = dynamic_data['img_contour'].copy()
     img_contour[img_contour >= 200] = 0
@@ -184,7 +198,11 @@ def mk_figure_3d(subject):
             go.Mesh3d(x=x, y=y, z=z, color=color, opacity=0.3, i=i, j=j, k=k)
         )
 
-    layout = dict(scene={'aspectratio': {'x': 1, 'y': 1, 'z': 1}},
+    shape = img_array.shape
+    _x = shape[0] * dynamic_data['slice_distance'] / 300
+    _y = shape[1] * dynamic_data['pixel_resolution'] / 300
+    _z = shape[2] * dynamic_data['pixel_resolution'] / 300
+    layout = dict(scene={'aspectratio': {'x': _x, 'y': _y, 'z': _z}},
                   # scene={'aspectmode': 'data'},
                   width=600,
                   title=subject)
@@ -209,12 +227,17 @@ def mk_figures_slices(subject, threshold=None, shrink=False, use_dynamic_data=Fa
     if threshold is None:
         threshold = 50
 
+    a = img_contour > threshold
+    b = img_contour < 300
+    count_ROI = np.count_nonzero(a * b)
+    logger.debug('The ROI count is {}'.format(count_ROI))
+
     dynamic_data['threshold'] = threshold
 
     # --------------------------------------------------------------------------------
     # The figs is a list of slice views
     figs_slices = []
-    range_color = (-1000, 2000)
+    # range_color = (-1000, 2000)
     range_color = (0, 200)
     for j in tqdm(range(len(img_array)), 'Prepare Slices'):
         # Two-layers will be generated.
@@ -234,10 +257,13 @@ def mk_figures_slices(subject, threshold=None, shrink=False, use_dynamic_data=Fa
                                      end=101,
                                      size=25,
                                      coloring='lines',
-                                     showlabels=True,
+                                     showlabels=False,
                                      labelfont=dict(size=12, color='white'))))
 
-        fig.update_layout({'title': 'Subj.{} Thre.{} Slic.{}'.format(subject, threshold, j),
+        _vol = dynamic_data['slice_distance'] * \
+            dynamic_data['pixel_resolution'] * \
+            dynamic_data['pixel_resolution'] / 1000
+        fig.update_layout({'title': 'Subj:{} CutBy:{} Slice:{} Volume:{:0.2f} ml'.format(subject, threshold, j, count_ROI * _vol),
                            'dragmode': 'drawrect',
                            'width': 580,
                            'newshape.line.width': 1,
@@ -257,6 +283,7 @@ def mk_figures_slices(subject, threshold=None, shrink=False, use_dynamic_data=Fa
 
 
 def mk_figures(subject):
+    raise DeprecationWarning('The mk_figures method is deprecated.')
     return 'Invalid Method'
     img_array = SUBJECT_MANAGER.get_array(subject)
     img_contour = SUBJECT_MANAGER.compute_contour(img_array)
@@ -603,12 +630,7 @@ features_div_children = [
                                       id='Threshold-selector',
                             style={'width': '150px'},
                             clearable=False,
-                            options=[{'label': 35, 'value': 35},
-                                     {'label': 40, 'value': 40},
-                                     {'label': 45, 'value': 45},
-                                     {'label': 50, 'value': 50},
-                                     {'label': 55, 'value': 55},
-                                     {'label': 60, 'value': 60}, ],
+                            options=mk_threshold_options(),
                             value=50,
                         ),
                             html.Button(
@@ -626,6 +648,7 @@ features_div_children = [
                         id='slider-1',
                         min=0,
                         max=len(dynamic_data['figs_slices']),
+                        step=1,
                         marks={i: 'Slice {}'.format(i) if i == 0 else str(i)
                                for i in range(0, len(dynamic_data['figs_slices']))},
                         value=int(len(dynamic_data['figs_slices']) / 2),
@@ -666,20 +689,52 @@ app.layout = html.Div(
     children=[
         html.Div(style={'display': 'none'}, id='blank-output'),
         html.Div(style={'display': 'none'}, id='blank-output-2'),
+        html.Div(style={'display': 'none'}, id='blank-output-3'),
         # --------------------------------------------------------------------------------
         # Title
         html.Div(
-            id='app-title-div',
             className=className,
-            style={'background-image': 'url("/10.jpg")',
-                   'color': 'cornsilk',
-                   'background-size': 'cover'},
+            style={'display': 'flex', 'flex-direction': 'row',
+                   'padding': '10px'},
             children=[
-                html.H1(id='app-title',
-                        children=CONFIG['app_name'])
+                html.Div(
+                    id='app-title-div',
+                    className=className,
+                    style={'color': 'cornsilk',
+                           'background-image': 'url("/10.jpg")',
+                           'background-size': 'cover'},
+                    children=[
+                        html.H1(id='app-title',
+                                children=CONFIG['app_name']),
+                        html.Div(
+                            style={'display': 'flex',
+                                   'flex-direction': 'row', 'padding': '5px'},
+                            children=[
+                                html.Div(
+                                    className=className,
+                                    style={'background-image': 'url("/logo.jpg")',
+                                           'height': '80px',
+                                           'width': '80px',
+                                           'color': 'cornsilk',
+                                           'background-size': 'cover'},
+                                ),
+                                html.Div(
+                                    className=className,
+                                    style={'background-image': 'url("/logo-2.jpg")',
+                                           'height': '80px',
+                                           'width': '80px',
+                                           'color': 'cornsilk',
+                                           'background-size': 'cover'}
+                                ), ]
+                        )
+                    ]
+                ),
+                dcc.Markdown(CONFIG['acknowledge'], style={
+                             'margin-left': '20px',
+                             'max-height': '180px',
+                             'overflow-y': 'scroll'}),
             ]
         ),
-
         # --------------------------------------------------------------------------------
         # Subject selector
         html.Div(
@@ -693,10 +748,37 @@ app.layout = html.Div(
                     options=subject_selector_options,
                     value=subject
                 ),
-                html.Textarea(
-                    id='CT-Subject-textarea',
-                    children='[Place Holder]'
-                )
+                html.Div(
+                    className=className,
+                    style={'display': 'flex', 'flex-direction': 'row'},
+                    children=[
+                        html.Label('Slice Distance (mm)'),
+                        dcc.Input(
+                            id="Slice_distance",
+                            type='number',
+                            placeholder="Distance between slices",
+                            min=1,
+                            max=20,
+                            value=dynamic_data['slice_distance'],
+                            required=True,
+                        ),
+                        html.Label('Pixel Resolution (mm)'),
+                        dcc.Input(
+                            id="Pixel_resolution",
+                            type='number',
+                            placeholder="Pixel resolution",
+                            min=0.1,
+                            max=2.0,
+                            value=dynamic_data['pixel_resolution'],
+                            required=True,
+                        ),
+                        html.Label('Other Issues'),
+                        html.Textarea(
+                            id='CT-Subject-textarea',
+                            children='[Place Holder]'
+                        )
+                    ]
+                ),
             ]
         ),
 
@@ -786,7 +868,7 @@ app.clientside_callback(
     }
     """,
     [
-        Output('blank-output', 'children')
+        Output('blank-output-1', 'children')
     ],
     [
         Input('CT-Subject-selector', 'value')
@@ -795,7 +877,31 @@ app.clientside_callback(
 )
 
 
-@app.callback(
+@ app.callback(
+    [
+        Output('blank-output-3', 'children')
+    ],
+    [
+        Input('Slice_distance', 'value'),
+        Input('Pixel_resolution', 'value')
+    ],
+)
+def callback_geometry_on_change(slice_distance, pixel_resolution):
+    # --------------------------------------------------------------------------------
+    # Which Input is inputted
+    cbcontext = [p["prop_id"] for p in dash.callback_context.triggered][0]
+    logger.debug(
+        'The callback_geometry_on_change receives the event: {}'.format(cbcontext))
+
+    dynamic_data['slice_distance'] = slice_distance
+    dynamic_data['pixel_resolution'] = pixel_resolution
+    logger.debug('Geometry of the CT image is changed {}, {}'.format(
+        slice_distance, pixel_resolution))
+
+    return '{}, {}'.format(slice_distance, pixel_resolution),
+
+
+@ app.callback(
     [
         Output('features-table', 'children'),
         Output('features-score', 'children'),
@@ -813,6 +919,7 @@ def callback_compute_features(n_clicks):
         'The callback_compute_features receives the event: {}, {}'.format(cbcontext, n_clicks))
 
     if not n_clicks:
+        logger.warning('The n_clicks parameter is required')
         return 'Not Computed Yet', 'N.A.'
 
     subject = dynamic_data['subject']
@@ -824,6 +931,8 @@ def callback_compute_features(n_clicks):
 
     if isinstance(score, float):
         score = '{:0.2f}'.format(score)
+
+    logger.debug('Update the table and score {}'.format(score))
 
     return table_obj, score
 
@@ -894,14 +1003,17 @@ def callback_subject_selection(subject):
     Input('slider-1', 'value'),
     prevent_initial_call=True,
 )
-def on_new_annotation(relayout_data, value):
+def callback_on_new_annotation(relayout_data, value):
     # --------------------------------------------------------------------------------
     # Which Input is inputted
     cbcontext = [p["prop_id"] for p in dash.callback_context.triggered][0]
     logger.debug(
-        'The on_new_annotation receives the event: {}'.format(cbcontext))
+        'The callback_on_new_annotation receives the event: {}'.format(cbcontext))
 
     logger.debug('Annotating the slice of {}'.format(value))
+
+    if cbcontext.startswith('slider-1'):
+        return dash.no_update
 
     # [
     #   {
@@ -938,11 +1050,13 @@ def on_new_annotation(relayout_data, value):
             # x1 = dct['x1']
             # y0 = dct['y0']
             # y1 = dct['y1']
-            print(x0, x1, y0, y1)
+            logger.debug('Cutting values of {}'.format((x0, x1, y0, y1)))
             dynamic_data['img_contour'][int(value),
                                         int(y0):int(y1),
-                                        int(x0):int(x1)] = 0
+                                        int(x0):int(x1)] = 300
 
+        # Consume all the cuts
+        # relayout_data['shapes'] = []
         return obj
     else:
         return dash.no_update
@@ -958,7 +1072,7 @@ def on_new_annotation(relayout_data, value):
         Input('Threshold-apply', 'n_clicks'),
     ],
 )
-def callback_slider_1(slice, threshold, n_clicks):
+def callback_slice_by_slider_1(slice, threshold, n_clicks):
     # --------------------------------------------------------------------------------
     # Which Input is inputted
     cbcontext = [p["prop_id"] for p in dash.callback_context.triggered][0]
@@ -973,6 +1087,22 @@ def callback_slider_1(slice, threshold, n_clicks):
 
     if 'figs_slices' in dynamic_data:
         fig = dynamic_data['figs_slices'][int(slice)]
+        img_contour = dynamic_data['img_contour']
+
+        img_slice = img_contour[int(slice)].copy()
+        img_slice[img_slice < 300] = 0
+        fig.add_trace(go.Contour(z=img_slice,
+                                 showscale=False,
+                                 hoverinfo='skip',
+                                 line_width=2,
+                                 contours=dict(
+                                     start=25,
+                                     end=101,
+                                     size=25,
+                                     coloring='lines',
+                                     showlabels=False,
+                                     labelfont=dict(size=12, color='white'))))
+
     else:
         fig = px.scatter([1, 2, 3])
 

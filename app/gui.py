@@ -18,7 +18,10 @@ from onstart import CONFIG
 url = 'http://localhost:8693'
 # %%
 
-logo_file = Path.cwd().joinpath('./assets/logo.jpg')
+logos_file = [
+    Path.cwd().joinpath('./assets/logo.jpg'),
+    Path.cwd().joinpath('./assets/logo-2.jpg')
+]
 
 log_file = Path.cwd().joinpath('../log/CTDisplay.log')
 
@@ -26,7 +29,7 @@ log_file = Path.cwd().joinpath('../log/CTDisplay.log')
 
 
 class MainGUI():
-    def __init__(self, window_title=CONFIG['short_name'], app_name=CONFIG['app_name'], width=500, height=500):
+    def __init__(self, window_title=CONFIG['short_name'], app_name=CONFIG['app_name'], width=700, height=500):
         self.app_name = app_name
         self.root = tk.Tk()
 
@@ -41,17 +44,23 @@ class MainGUI():
 
         # Logo label
         self.label_logo = tk.Label(
-            self.frame_logo, text=self.app_name, font=("Arial", 25))
+            self.frame_logo, text=self.app_name, font=("Serial", 18))
         self.label_logo.pack(side=tk.LEFT)
 
         # Logo img
-        img = Image.open(logo_file.as_posix())
-        img = img.resize((50, 50))  # , Image.ANTIALIAS)
-        self.logo_img = ImageTk.PhotoImage(img, size=(50, 50))
+        self.logos_img = []
+        for _file in logos_file:
+            img = Image.open(_file.as_posix())
+            img = img.resize((50, 50))  # , Image.ANTIALIAS)
+            self.logos_img.append(
+                ImageTk.PhotoImage(img, size=(50, 50))
+            )
 
         # Panel and pack the logo
-        panel = tk.Label(self.frame_logo, image=self.logo_img)
+        panel = tk.Label(self.frame_logo, image=self.logos_img[0])
+        panel_2 = tk.Label(self.frame_logo, image=self.logos_img[1])
         panel.pack(side=tk.RIGHT)
+        panel_2.pack(side=tk.RIGHT)
 
         return self.frame_logo
 
@@ -97,7 +106,8 @@ class MainGUI():
             self.text_logger, command=self.text_logger.yview)
         self.text_logger.configure(yscrollcommand=self.text_logger_scroll.set)
 
-        self.text_logger.image_create("1.0", image=self.logo_img)
+        for img in self.logos_img:
+            self.text_logger.image_create("1.0", image=img)
 
         # Pack the text_logger
         self.text_logger.pack(fill=tk.BOTH)
