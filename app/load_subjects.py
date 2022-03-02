@@ -73,7 +73,7 @@ class Subject_Manager(object):
 
         return img_array
 
-    def compute_contour(self, img_array, threshold=None, shrink=False, kernel=np.ones((2, 5, 5)), footprint=np.ones((5, 5, 5))):
+    def compute_contour(self, img_array, threshold=None, shrink=False, kernel=np.ones((1, 5, 5)), footprint=np.ones((5, 5, 5))):
         # Mark the region of interest
         # Remove the skull for calculation,
         # using the maximum_filter method.
@@ -87,8 +87,8 @@ class Subject_Manager(object):
         mask = maximum_filter(img_array, footprint=footprint)
         img_contour[mask > 200] = 0
 
-        mask = maximum_filter(img_array, footprint=np.ones((10, 10, 10)))
-        img_contour[mask > 500] = 0
+        # mask = maximum_filter(img_array, footprint=np.ones((10, 10, 10)))
+        # img_contour[mask > 500] = 0
 
         # Remove the **small** nodes for better solution.
         mask = img_contour > threshold
@@ -168,17 +168,17 @@ class Subject_Manager(object):
         # Compute Wavelet Image [featureImage, name, {}] x 8 (wavelet-LLH, LLL, ...)
         waveletImages = [e
                          for e in radiomics.imageoperations.getWaveletImage(image, mask)]
-        logger.debug('--------', len(waveletImages), waveletImages[0])
+        print('--------', len(waveletImages), waveletImages[0])
 
         # Compute Exponential Image [image, name, {}] x 1 (exponential)
         exponentialImages = [e
                              for e in radiomics.imageoperations.getExponentialImage(image, mask)]
-        logger.debug('--------', len(exponentialImages), exponentialImages[0])
+        print('--------', len(exponentialImages), exponentialImages[0])
 
         # Compute Squareroot Image [image, name, {}] x 1 (squareroot)
         squarerootImages = [e
                             for e in radiomics.imageoperations.getSquareRootImage(image, mask)]
-        logger.debug('--------', len(squarerootImages), squarerootImages[0])
+        print('--------', len(squarerootImages), squarerootImages[0])
 
         rfe.loadImage(image, mask)
         logger.debug(

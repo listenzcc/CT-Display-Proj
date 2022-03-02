@@ -495,8 +495,8 @@ behavior_div_children = [
                 labelStyle=_local_labelStyle,
                 options=[
                     dict(label='3 ~ 6', value=2),
-                    dict(label='1 ~ 12', value=1),
-                    dict(label='12 ~ 6???', value=0),
+                    dict(label='6 ~ 12', value=1),
+                    dict(label='12 ~ 15', value=0),
                 ]
             ),
 
@@ -621,22 +621,28 @@ features_div_children = [
                         className=className,
                         style={'display': 'flex', 'flex-direction': 'row',
                                'padding-left': '10px'},
-                        children=[html.Label('Change the threshold:'),
-                                  html.Pre(
-                                      id='annotations-data',
-                                  style={'display': 'none'},
-                                  children=['annotations-data']),
-                                  dcc.Dropdown(
-                                      id='Threshold-selector',
-                            style={'width': '150px'},
-                            clearable=False,
-                            options=mk_threshold_options(),
-                            value=50,
-                        ),
+                        children=[
+                            html.Label('Change the threshold:'),
+                            html.Pre(
+                                id='annotations-data',
+                                style={'display': 'none'},
+                                children=['annotations-data']),
+                            dcc.Dropdown(
+                                id='Threshold-selector',
+                                clearable=False,
+                                options=mk_threshold_options(),
+                                value=50),
                             html.Button(
-                                      id='Threshold-apply',
-                            style={'width': '150px'},
-                            children=['Apply'])
+                                id='Threshold-apply',
+                                style={'width': '150px'},
+                                children=['Apply']),
+                            dcc.Checklist(
+                                id='annotation-mode',
+                                className=className,
+                                options=[
+                                    dict(label='Rough', value=1),
+                                ]
+                            ),
                         ]
                     ),
                     dcc.Loading(dcc.Graph(
@@ -1000,19 +1006,30 @@ def callback_subject_selection(subject):
 @app.callback(
     Output("annotations-data", "children"),
     Input("graph-2", "relayoutData"),
-    Input('slider-1', 'value'),
+    [
+        Input('slider-1', 'value'),
+        Input('annotation-mode', 'value'),
+    ],
     prevent_initial_call=True,
 )
-def callback_on_new_annotation(relayout_data, value):
+def callback_on_new_annotation(relayout_data, slice_idx, value):
     # --------------------------------------------------------------------------------
     # Which Input is inputted
     cbcontext = [p["prop_id"] for p in dash.callback_context.triggered][0]
     logger.debug(
         'The callback_on_new_annotation receives the event: {}'.format(cbcontext))
 
-    logger.debug('Annotating the slice of {}'.format(value))
+    logger.debug('Annotating the slice of {}'.format(slice_idx))
+
+    if len(value) == 0:
+        value.append(None)
+
+    slice_idx = int(slice_idx)
 
     if cbcontext.startswith('slider-1'):
+        return dash.no_update
+
+    if cbcontext.startswith('annotation-mode'):
         return dash.no_update
 
     # [
@@ -1043,17 +1060,26 @@ def callback_on_new_annotation(relayout_data, value):
         obj = relayout_data["shapes"]
 
         for dct in obj:
-            x0 = np.min([dct['x0'], dct['x1']])
-            x1 = np.max([dct['x0'], dct['x1']])
-            y0 = np.min([dct['y0'], dct['y1']])
-            y1 = np.max([dct['y0'], dct['y1']])
+            x0 = int(np.min([dct['x0'], dct['x1']]))
+            x1 = int(np.max([dct['x0'], dct['x1']]))
+            y0 = int(np.min([dct['y0'], dct['y1']]))
+            y1 = int(np.max([dct['y0'], dct['y1']]))
             # x1 = dct['x1']
             # y0 = dct['y0']
             # y1 = dct['y1']
-            logger.debug('Cutting values of {}'.format((x0, x1, y0, y1)))
-            dynamic_data['img_contour'][int(value),
-                                        int(y0):int(y1),
-                                        int(x0):int(x1)] = 300
+
+            if value[0] == 1:
+                logger.debug(
+                    'Cutting values of {} in rough mode'.format((x0, x1, y0, y1)))
+                dynamic_data['img_contour'][:, 0:y0] = 500
+                dynamic_data['img_contour'][:, y1:-1] = 500
+                dynamic_data['img_contour'][:, :, 0:x0] = 500
+                dynamic_data['img_contour'][:, :, x1:-1] = 500
+
+            else:
+                logger.debug('Cutting values of {} on layer {}'.format((x0, x1, y0, y1),
+                                                                       slice_idx))
+                dynamic_data['img_contour'][slice_idx, y0:y1, x0:x1] = 300
 
         # Consume all the cuts
         # relayout_data['shapes'] = []
@@ -1070,9 +1096,10 @@ def callback_on_new_annotation(relayout_data, value):
         Input('slider-1', 'value'),
         Input('Threshold-selector', 'value'),
         Input('Threshold-apply', 'n_clicks'),
+        Input('annotation-mode', 'value'),
     ],
 )
-def callback_slice_by_slider_1(slice, threshold, n_clicks):
+def callback_slice_by_slider_1(slice, threshold, n_clicks, value):
     # --------------------------------------------------------------------------------
     # Which Input is inputted
     cbcontext = [p["prop_id"] for p in dash.callback_context.triggered][0]
@@ -1082,26 +1109,52 @@ def callback_slice_by_slider_1(slice, threshold, n_clicks):
     if cbcontext.startswith('Threshold-apply'):
         slice_view_recompute(threshold, use_dynamic_data=True)
 
+    if len(value) == 0:
+        value.append(None)
+
+    if cbcontext.startswith('annotation-mode') and value[0] == 1:
+        slice_view_recompute(threshold, use_dynamic_data=False)
+
+    if cbcontext.startswith('annotation-mode') and value[0] != 1:
+        slice_view_recompute(threshold, use_dynamic_data=True)
+
     if cbcontext.startswith('Threshold-selector'):
         slice_view_recompute(threshold, use_dynamic_data=False)
 
     if 'figs_slices' in dynamic_data:
         fig = dynamic_data['figs_slices'][int(slice)]
-        img_contour = dynamic_data['img_contour']
 
-        img_slice = img_contour[int(slice)].copy()
-        img_slice[img_slice < 300] = 0
-        fig.add_trace(go.Contour(z=img_slice,
-                                 showscale=False,
-                                 hoverinfo='skip',
-                                 line_width=2,
-                                 contours=dict(
-                                     start=25,
-                                     end=101,
-                                     size=25,
-                                     coloring='lines',
-                                     showlabels=False,
-                                     labelfont=dict(size=12, color='white'))))
+        img_contour = dynamic_data['img_contour'].copy()
+
+        if value[0] == 1:
+            img_slice = np.sum(img_contour, axis=0)
+            # img_slice[img_slice > 300] = 0
+            fig.add_trace(go.Contour(z=img_slice,
+                                     showscale=False,
+                                     hoverinfo='skip',
+                                     line_width=2,
+                                     contours=dict(
+                                         start=25,
+                                         end=101,
+                                         size=25,
+                                         coloring='lines',
+                                         showlabels=False,
+                                         labelfont=dict(size=12, color='white'))))
+
+        else:
+            img_slice = img_contour[int(slice)].copy()
+            img_slice[img_slice < 300] = 0
+            fig.add_trace(go.Contour(z=img_slice,
+                                     showscale=False,
+                                     hoverinfo='skip',
+                                     line_width=2,
+                                     contours=dict(
+                                         start=25,
+                                         end=101,
+                                         size=25,
+                                         coloring='lines',
+                                         showlabels=False,
+                                         labelfont=dict(size=12, color='white'))))
 
     else:
         fig = px.scatter([1, 2, 3])
