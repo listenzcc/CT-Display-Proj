@@ -1,5 +1,5 @@
 div#main-window {
-    width: 1500px;
+    width: 1800px;
     /* height: 100%; */
     /* min-height: 5in; */
     overflow: auto;
@@ -36,6 +36,11 @@ div#features-div {
 }
 
 div#behavior-div {
+    width: 290px;
+    margin-left: 5px;
+}
+
+div#alff-div {
     width: 290px;
     margin-left: 5px;
 }
