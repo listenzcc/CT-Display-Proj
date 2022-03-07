@@ -23,6 +23,7 @@ from werkzeug.serving import run_simple
 from onstart import CONFIG, logger
 
 from load_templates import WEIGHTS, RANGE_TABLE, OFFSET
+from load_alff import ALFF_DATA
 from load_subjects import SUBJECT_MANAGER
 
 from gui import gui
@@ -87,6 +88,49 @@ def slice_view_recompute(threshold, use_dynamic_data):
     mk_figures_slices(subject, threshold, shrink=True,
                       use_dynamic_data=use_dynamic_data)
     return
+
+
+def mk_ALFF_table(value0, value1):
+    # Basically, the good values are larger
+    values0_good = ALFF_DATA['data_a0_good']
+    values0_bad = ALFF_DATA['data_a0_bad']
+    values1_good = ALFF_DATA['data_a1_good']
+    values1_bad = ALFF_DATA['data_a1_bad']
+
+    p0_good = np.count_nonzero(values0_good < value0) / len(values0_good)
+    p0_bad = np.count_nonzero(values0_bad > value0) / len(values0_bad)
+
+    p1_good = np.count_nonzero(values1_good < value1) / len(values1_good)
+    p1_bad = np.count_nonzero(values1_bad > value1) / len(values1_bad)
+
+    logger.debug('ALFF probabilities is computed as {}, {}, {}, {}'.format(
+        p0_good, p0_bad, p1_good, p1_bad))
+
+    data = [
+        ('视觉区', '好', '{:0.2f}'.format(p0_good)),
+        ('视觉区', '差', '{:0.2f}'.format(p0_bad)),
+        ('辅助运动区', '好', '{:0.2f}'.format(p1_good)),
+        ('辅助运动区', '差', '{:0.2f}'.format(p1_bad)),
+    ]
+
+    columns = ['脑区', '预后', '概率']
+    df = pd.DataFrame(data, columns=columns)
+
+    data = df.to_dict('records')
+
+    _columns = [{'name': e, 'id': e} for e in columns]
+
+    table_obj = dash_table.DataTable(
+        columns=_columns,
+        data=data
+    )
+
+    score = p0_good * 0.5 + p1_good * 0.5
+
+    logger.debug('The ALFF score is {}, {}, {}'.format(
+        score, p0_good, p1_good))
+
+    return table_obj, score
 
 
 def mk_features_table(subject):
@@ -396,6 +440,56 @@ _local_style = {
 }
 
 _local_labelStyle = {'min-width': '100px'}
+
+alff_div_children = [
+    # --------------------------------------------------------------------------------
+    # Alff subject
+    html.Div(
+        className=className,
+        style={'background-image': 'url("/20.png")',
+               'color': 'cornsilk'},
+        children=[html.H2('Alff Score')],
+    ),
+    html.Div(
+        id='ALFF-score',
+        className='{} {}'.format(className, 'score'),
+        children='N.A.'
+    ),
+
+    html.Div(
+        className=className,
+        children=[
+            html.Label('视觉区 ALFF 值'),
+            dcc.Input(
+                id="ALFF-Area-0",
+                type='number',
+                placeholder="ALFF of Visual Area",
+                value=0,
+                required=True,
+            ),
+            html.Label('辅助运动区 ALFF 值'),
+            dcc.Input(
+                id="ALFF-Area-1",
+                type='number',
+                placeholder="ALFF of Sup-Motion Area",
+                value=0,
+                required=True,
+            ),
+        ]
+    ),
+
+    html.Div(
+        className=className,
+        children=[
+            # html.Label('ALFF Detail'),
+            dcc.Loading(html.Div(
+                id='ALFF-table',
+                className=className,
+                children='Table of ALFF'
+            ))
+        ]
+    )
+]
 
 behavior_div_children = [
     # --------------------------------------------------------------------------------
@@ -789,7 +883,7 @@ app.layout = html.Div(
         ),
 
         html.Div(
-            id='two-column-div',
+            id='three-column-div',
             className=className,
             style={'display': 'flex', 'flex-direction': 'row'},
             children=[
@@ -802,6 +896,11 @@ app.layout = html.Div(
                     id='behavior-div',
                     className=className,
                     children=behavior_div_children
+                ),
+                html.Div(
+                    id='alff-div',
+                    className=className,
+                    children=alff_div_children
                 )
             ]
         )
@@ -846,6 +945,9 @@ app.clientside_callback(
         dom = document.getElementById('features-score')
         dom.textContent = 'N.A.'
 
+        dom = document.getElementById('ALFF-score')
+        dom.textContent = 'N.A.'
+
         dom = document.getElementById('graph-2')
         dom.style.display = 'none'
 
@@ -883,7 +985,29 @@ app.clientside_callback(
 )
 
 
-@ app.callback(
+@app.callback(
+    [
+        Output('ALFF-score', 'children'),
+        Output('ALFF-table', 'children')
+    ],
+    [
+        Input('ALFF-Area-0', 'value'),
+        Input('ALFF-Area-1', 'value'),
+    ]
+)
+def callback_ALFF_on_change(value0, value1):
+    # --------------------------------------------------------------------------------
+    # Which Input is inputted
+    cbcontext = [p["prop_id"] for p in dash.callback_context.triggered][0]
+    logger.debug(
+        'The callback_ALFF_on_change receives the event: {}'.format(cbcontext))
+
+    table_obj, score = mk_ALFF_table(value0, value1)
+
+    return '{:0.2f}'.format(score), table_obj
+
+
+@app.callback(
     [
         Output('blank-output-3', 'children')
     ],
@@ -907,7 +1031,7 @@ def callback_geometry_on_change(slice_distance, pixel_resolution):
     return '{}, {}'.format(slice_distance, pixel_resolution),
 
 
-@ app.callback(
+@app.callback(
     [
         Output('features-table', 'children'),
         Output('features-score', 'children'),
@@ -1020,6 +1144,9 @@ def callback_on_new_annotation(relayout_data, slice_idx, value):
         'The callback_on_new_annotation receives the event: {}'.format(cbcontext))
 
     logger.debug('Annotating the slice of {}'.format(slice_idx))
+
+    if value is None:
+        return dash.no_update
 
     if len(value) == 0:
         value.append(None)
