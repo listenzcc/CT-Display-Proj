@@ -1236,8 +1236,11 @@ def callback_slice_by_slider_1(slice, threshold, n_clicks, value):
     if cbcontext.startswith('Threshold-apply'):
         slice_view_recompute(threshold, use_dynamic_data=True)
 
-    if len(value) == 0:
-        value.append(None)
+    if value is None:
+        value = [None]
+    else:
+        if len(value) == 0:
+            value.append(None)
 
     if cbcontext.startswith('annotation-mode') and value[0] == 1:
         slice_view_recompute(threshold, use_dynamic_data=False)
