@@ -131,6 +131,10 @@ counts = sorted(counts, key=lambda e: e[1])
 
 OFFSET = counts[0][0]
 
+# _table = table.copy()
+# _table['label'] = 1
+# _table.to_csv('{}.csv'.format(OFFSET))
+
 # Whether save the html as logs
 if False:
     title = 'Offset Estimation - {} - {}'.format(OFFSET, time.time())
